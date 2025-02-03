@@ -18,7 +18,7 @@ def scam_detection_interface(audio_file_path):
         scam_prob = predict_scam(transcription, model, tokenizer, device)
         status, color = get_status_details(scam_prob)
         status_box_html = f"""
-        <div style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; display: flex; align-items: center;">
+        <div style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; display: flex; align-items: center; background-color: #fff;">
             <div style="flex:1; font-weight: bold; color: {color};">{status}</div>
             <div style="width: 20px; height: 20px; border-radius: 50%; background-color: {color};"></div>
         </div>
@@ -50,20 +50,30 @@ def education_module():
     """
     return content
 
-with gr.Blocks(css=".gradio-container {background-color: #f9f9f9; font-family: Arial;}") as demo:
+# Updated Gradio Blocks layout with improved UI
+with gr.Blocks(css="""
+    .gradio-container {background-color: #f9f9f9; font-family: Arial, sans-serif; padding: 20px;}
+    .tab-header {padding: 10px; background-color: #e6e6e6; border-radius: 5px;}
+    .output-row {display: flex; gap: 20px;}
+    .output-row > * {flex: 1;}
+""") as demo:
     gr.Markdown("# Real-Time Scam Call Detection")
+    gr.Markdown("Upload an audio file to check if it's a scam call and get a detailed analysis based on the audio transcription.")
+    
     with gr.Tabs():
         with gr.TabItem("Detection"):
-            gr.Markdown("## Upload an audio file for scam detection")
-            audio_input = gr.Audio(type="filepath", label="Upload Audio")
-            result_text_output = gr.Textbox(label="Detection Result", interactive=False)
-            status_html_output = gr.HTML(label="Scam Status")
+            gr.Markdown("## Upload an Audio File for Scam Detection")
+            audio_input = gr.Audio(type="filepath", label="Select Audio File")
+            with gr.Row():
+                result_text_output = gr.Textbox(label="Detection Result", interactive=False)
+                status_html_output = gr.HTML(label="Scam Status")
             detect_button = gr.Button("Detect Scam")
             detect_button.click(fn=scam_detection_interface, inputs=audio_input,
                                 outputs=[result_text_output, status_html_output])
         with gr.TabItem("Education"):
             gr.Markdown("## Scam Prevention Information")
             education_output = gr.HTML(label="Educational Content", value=education_module())
+    
     gr.Markdown("### Powered by Real-Time Scam Detection Prototype")
     
 if __name__ == "__main__":
