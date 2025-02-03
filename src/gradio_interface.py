@@ -55,7 +55,7 @@ with gr.Blocks(css=".gradio-container {background-color: #f9f9f9; font-family: A
     with gr.Tabs():
         with gr.TabItem("Detection"):
             gr.Markdown("## Upload an audio file for scam detection")
-            audio_input = gr.Audio(source="upload", type="filepath", label="Upload Audio")
+            audio_input = gr.Audio(type="filepath", label="Upload Audio")
             result_text_output = gr.Textbox(label="Detection Result", interactive=False)
             status_html_output = gr.HTML(label="Scam Status")
             detect_button = gr.Button("Detect Scam")

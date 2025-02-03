@@ -29,7 +29,7 @@ def train_model():
         evaluation_strategy="no",
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
-        num_train_epochs=5,
+        num_train_epochs=3,
         save_strategy="epoch",
         logging_dir="./logs",
         logging_steps=10,
