@@ -1,0 +1,10 @@
+pandas
+datasets
+transformers
+torch
+fastapi
+uvicorn
+python-multipart
+SpeechRecognition
+pydub
+gradio
