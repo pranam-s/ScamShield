@@ -6,7 +6,6 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from train import train_model
 from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details
 
-# Load model and tokenizer for backend use
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model, tokenizer = train_model()
 model.to(device)
@@ -16,7 +15,6 @@ app = FastAPI(title="Scam Detection API")
 
 @app.post("/detect-scam/")
 async def detect_scam(file: UploadFile = File(...)):
-    # Validate input audio and process scam detection
     if file.content_type not in ["audio/mpeg", "audio/mp3", "audio/wav"]:
         raise HTTPException(status_code=400, detail="Invalid audio format. Only MP3 and WAV are supported.")
     file_bytes = await file.read()
@@ -32,7 +30,6 @@ async def detect_scam(file: UploadFile = File(...)):
 
 @app.get("/education/")
 async def education_info():
-    # Provide educational content about scam detection as HTML
     content = """
     <h2>Scam Detection Educational Module</h2>
     <p>This module explains the warning signs of scam calls:</p>
@@ -47,12 +44,10 @@ async def education_info():
 
 @app.get("/health/")
 async def health_check():
-    # Check API service health
     return {"status": "ok", "message": "Scam Detection API is running."}
 
 @app.get("/model-info/")
 async def model_info():
-    # Return basic information about the model used
     info = {
         "model_name": "DistilBERT for Scam Detection",
         "num_labels": 2,
@@ -61,9 +56,7 @@ async def model_info():
     return JSONResponse(content=info)
 
 def run_fastapi():
-    # Start the FastAPI server using uvicorn on port 8000
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 if __name__ == "__main__":
-    # Run FastAPI backend if this module is executed directly
     run_fastapi()

@@ -3,14 +3,12 @@ import torch
 from train import train_model
 from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details
 
-# Set up device and load trained model and tokenizer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model, tokenizer = train_model()
 model.to(device)
 model.eval()
 
 def scam_detection_interface(audio_file_path):
-    # Process the uploaded audio file for scam detection
     try:
         with open(audio_file_path, "rb") as f:
             file_bytes = f.read()
@@ -19,7 +17,6 @@ def scam_detection_interface(audio_file_path):
         transcription = transcribe_audio(wav_file)
         scam_prob = predict_scam(transcription, model, tokenizer, device)
         status, color = get_status_details(scam_prob)
-        # Create an HTML block to visually show the status with a color indicator
         status_box_html = f"""
         <div style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; display: flex; align-items: center;">
             <div style="flex:1; font-weight: bold; color: {color};">{status}</div>
@@ -32,7 +29,6 @@ def scam_detection_interface(audio_file_path):
         return f"Error: {str(e)}", ""
 
 def education_module():
-    # Provide detailed educational content on scam call detection and prevention
     content = """
     <h2>Scam Detection Educational Module</h2>
     <p>This module provides information on how to identify scam calls and avoid fraud.</p>
@@ -54,7 +50,6 @@ def education_module():
     """
     return content
 
-# Build a Gradio Blocks interface with two tabs: one for detection and one for education.
 with gr.Blocks(css=".gradio-container {background-color: #f9f9f9; font-family: Arial;}") as demo:
     gr.Markdown("# Real-Time Scam Call Detection")
     with gr.Tabs():
@@ -72,5 +67,4 @@ with gr.Blocks(css=".gradio-container {background-color: #f9f9f9; font-family: A
     gr.Markdown("### Powered by Real-Time Scam Detection Prototype")
     
 if __name__ == "__main__":
-    # Launch the Gradio interface with share enabled
     demo.launch(share=True)
