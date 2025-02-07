@@ -172,6 +172,7 @@ async def detect_scam(
 
     try:
         wav_file = convert_audio_to_wav(file_bytes, file_format)
+        print(wav_file)
         transcription = transcribe_audio(wav_file)
         context = update_context(call_id, transcription, tokenizer) #update context
         scam_prob = predict_scam(context, model, tokenizer, device)  # Use CONTEXT
@@ -181,6 +182,7 @@ async def detect_scam(
         return JSONResponse(content={"scam_probability": scam_prob, "status": status, "transcription": transcription})
 
     except Exception as e:
+        print(f"Error in detect_scam: {e}")  # Log the full exception
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/save-call/")

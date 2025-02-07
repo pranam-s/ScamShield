@@ -13,12 +13,23 @@ def get_status_details(scam_prob):
 
 def convert_audio_to_wav(file_bytes, file_format):
     try:
+        # Use AudioSegment.from_file with explicit format
         audio = AudioSegment.from_file(io.BytesIO(file_bytes), format=file_format)
+
+        # Explicitly set frame rate and channels (if not already set)
+        if audio.frame_rate == 0:
+            audio = audio.set_frame_rate(44100)  # Common default
+        if audio.channels == 0:
+            audio = audio.set_channels(1)  # Mono is often better for speech
+
+        # Export to WAV
         wav_io = io.BytesIO()
         audio.export(wav_io, format="wav")
         wav_io.seek(0)
         return wav_io
+
     except Exception as e:
+        print(f"Audio conversion error: {e}")  # More detailed error logging
         raise Exception(f"Error processing audio file: {e}")
 
 def transcribe_audio(wav_file):
