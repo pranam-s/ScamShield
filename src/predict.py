@@ -18,18 +18,27 @@ def get_status_details(scam_prob):
     else:
         return "Safe", "green"
 
-def convert_audio_to_wav(file_bytes, file_format):
-    """Converts audio to WAV format using librosa and soundfile."""
+def convert_audio_to_wav(file_path): # Modified: Accepts file_path
+    """Converts audio to WAV format using librosa and soundfile, now from file path."""
     try:
-        print(f"Attempting audio conversion. Format: {file_format}, Size: {len(file_bytes)} bytes")
-        y, sr = librosa.load(io.BytesIO(file_bytes), sr=22050, mono=True, format=file_format)
+        file_format = file_path.split('.')[-1].lower()
+        print(f"Attempting audio conversion from path: {file_path}, Format: {file_format}") # LOGGING
+
+        # Load audio using librosa from file path
+        y, sr = librosa.load(file_path, sr=22050, mono=True) # Load from path, format inferred
+
+        print(f"Librosa load successful. Sample rate: {sr}, Audio shape: {y.shape}") # LOGGING
+
+        # Convert to WAV format using soundfile
         wav_io = io.BytesIO()
         sf.write(wav_io, y, sr, format='WAV', subtype='PCM_16')
         wav_io.seek(0)
-        print(f"WAV conversion successful. Size: {wav_io.getbuffer().nbytes} bytes")
+
+        print(f"WAV conversion successful. wav_io size: {wav_io.getbuffer().nbytes} bytes") # LOGGING
         return wav_io
+
     except Exception as e:
-        print(f"Audio conversion error (librosa), Format: {file_format}: {e}")
+        print(f"Audio conversion error (librosa), File path: {file_path}: {e}") # LOGGING - Include file_path in error log
         raise Exception(f"Error processing audio file: {e}")
 
 def transcribe_audio(wav_file):

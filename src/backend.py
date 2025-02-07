@@ -7,11 +7,11 @@ import torch
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse, HTMLResponse
-import speech_recognition as sr
 from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
 from datetime import datetime, timedelta
-from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details # Import from predict
+from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details
 import mimetypes
+import tempfile # Import tempfile
 
 # --- Configuration ---
 MODEL_NAME = "distilbert-base-uncased"
@@ -128,10 +128,10 @@ async def detect_scam(
 ):
     """Detects scam probability in an audio chunk."""
     file_format = ""
+    temp_file = None # Initialize temp_file
     try:
-        # 1. Validate File Extension and Content Type
         if not file.filename: # Check if filename exists
-             raise HTTPException(status_code=400, detail="Filename is missing.")
+            raise HTTPException(status_code=400, detail="Filename is missing.")
 
         file_extension = file.filename.split(".")[-1].lower()
         if file_extension not in ALLOWED_AUDIO_FORMATS:
@@ -141,7 +141,11 @@ async def detect_scam(
 
         file_bytes = await file.read()
 
-        wav_file = convert_audio_to_wav(file_bytes, file_format) # Use shared function
+        with tempfile.NamedTemporaryFile(suffix=f".{file_format}", delete=False) as tmp_file: # Create temp file
+            tmp_file.write(file_bytes)
+            temp_file_path = tmp_file.name # Get temp file path
+
+        wav_file = convert_audio_to_wav(temp_file_path) # Pass temp file path
         transcription = transcribe_audio(wav_file) # Use shared function
         context = update_context(call_id, transcription, tokenizer)
         scam_prob = predict_scam(context, model, device) # Use shared function
@@ -154,6 +158,9 @@ async def detect_scam(
     except Exception as e: # Catch other exceptions and log them
         print(f"Error in detect_scam: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}") # Return 500 for server errors
+    finally:
+        if temp_file_path: # Ensure temp file is deleted even if errors occur
+            os.unlink(temp_file_path) # Delete temp file after processing
 
 @app.post("/save-call/")
 async def save_call(
