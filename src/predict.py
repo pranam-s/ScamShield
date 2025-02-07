@@ -1,8 +1,9 @@
+# predict.py (MODIFIED with Extensive Logging)
 import io
 import torch
 import speech_recognition as sr
-import librosa  # Import librosa
-import soundfile as sf  # Import soundfile
+import librosa
+import soundfile as sf
 
 def get_status_details(scam_prob):
     if scam_prob >= 0.8:
@@ -14,16 +15,23 @@ def get_status_details(scam_prob):
 
 def convert_audio_to_wav(file_bytes, file_format):
     try:
+        print(f"Attempting audio conversion. File format: {file_format}, File size: {len(file_bytes)} bytes") # LOGGING
+
         # Load audio using librosa, automatically resampling to 22050 Hz
-        y, sr = librosa.load(io.BytesIO(file_bytes), sr=22050, mono=True)
+        y, sr = librosa.load(io.BytesIO(file_bytes), sr=22050, mono=True, format=file_format) # Explicitly pass format
+
+        print(f"Librosa load successful. Sample rate: {sr}, Audio shape: {y.shape}") # LOGGING
 
         # Convert to WAV format using soundfile
         wav_io = io.BytesIO()
         sf.write(wav_io, y, sr, format='WAV', subtype='PCM_16')
         wav_io.seek(0)
+
+        print(f"WAV conversion successful. wav_io size: {wav_io.getbuffer().nbytes} bytes") # LOGGING
         return wav_io
+
     except Exception as e:
-        print(f"Audio conversion error (librosa): {e}")
+        print(f"Audio conversion error (librosa), File format: {file_format}: {e}") # LOGGING - Include file_format in error log
         raise Exception(f"Error processing audio file: {e}")
 
 def transcribe_audio(wav_file):
