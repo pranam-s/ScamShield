@@ -7,10 +7,9 @@ import torch
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse, HTMLResponse
-from pydub import AudioSegment
-import speech_recognition as sr
 from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
 from datetime import datetime, timedelta
+from predict import get_status_details, convert_audio_to_wav, transcribe_audio, predict_scam
 
 # --- Configuration ---
 MODEL_NAME = "distilbert-base-uncased"
@@ -85,47 +84,6 @@ active_calls = {}  # {call_id: {context: "", chunk_count: 0, start_time: 0.0, la
 # --- FastAPI App ---
 app = FastAPI(title="Scam Detection API")
 
-# --- Helper Functions ---
-def convert_audio_to_wav(file_bytes, file_format):
-    try:
-        audio = AudioSegment.from_file(io.BytesIO(file_bytes), format=file_format)
-        wav_io = io.BytesIO()
-        audio.export(wav_io, format="wav")
-        wav_io.seek(0)
-        return wav_io
-    except Exception as e:
-        raise Exception(f"Error processing audio file: {e}")
-
-def transcribe_audio(wav_file):
-    recognizer = sr.Recognizer()
-    with sr.AudioFile(wav_file) as source:
-        audio = recognizer.record(source)
-    try:
-        text = recognizer.recognize_google(audio, language="auto")
-        return text
-    except sr.UnknownValueError:
-        raise Exception("Speech Recognition could not understand audio")
-    except sr.RequestError as e:
-        raise Exception(f"Could not request results from Speech Recognition service; {e}")
-
-def predict_scam(text, model, tokenizer, device):
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-    with torch.no_grad():
-        outputs = model(**inputs)
-    logits = outputs.logits
-    probabilities = torch.nn.functional.softmax(logits, dim=-1)
-    scam_prob = probabilities[0][1].item()
-    return scam_prob
-
-def get_status_details(scam_prob):
-    if scam_prob >= 0.8:
-        return "Scam", "red"
-    elif scam_prob >= 0.4:
-        return "Suspicious", "yellow"
-    else:
-        return "Safe", "green"
-
 def update_context(call_id: str, new_text: str, tokenizer) -> str:
     """Updates the conversation context for a given call_id."""
     if call_id not in active_calls:
@@ -158,26 +116,64 @@ def update_context(call_id: str, new_text: str, tokenizer) -> str:
 async def detect_scam(
     file: UploadFile = File(...),
     call_id: str = Form(...),
-    db: sqlite3.Connection = Depends(get_db)  # Database connection not used here, but good practice to keep
+    db: sqlite3.Connection = Depends(get_db)  # Database connection not used here
 ):
     """Detects scam probability in an audio chunk."""
 
-    allowed_types = ["mp3", "wav", "3gp", "mpeg", "m4a", "ogg", "flac"]
-    file_format = file.filename.split(".")[-1].lower()  # More robust format detection
+    # 1. Content-Type Check (More Reliable)
+    allowed_content_types = [
+        "audio/mpeg", "audio/mp3", "audio/wav", "audio/wave", "audio/x-wav",
+        "audio/3gpp", "audio/m4a", "audio/ogg", "audio/flac"
+    ]
+    if file.content_type not in allowed_content_types:
+        # Fallback: Try to infer from filename if content_type is unreliable
+        if file.filename:
+            extension = file.filename.split(".")[-1].lower()
+            if extension == "mp3":
+                inferred_content_type = "audio/mpeg"  # MP3 can be mpeg
+            elif extension == "wav":
+                inferred_content_type = "audio/wav"
+            elif extension == "3gp":
+                inferred_content_type = "audio/3gpp"
+            elif extension == "m4a":
+                inferred_content_type = "audio/m4a"
+            elif extension == "ogg":
+                inferred_content_type = "audio/ogg"
+            elif extension == "flac":
+                 inferred_content_type = "audio/flac"
+            else:
+                raise HTTPException(status_code=400, detail="Invalid audio format or missing Content-Type header.")
 
-    if file_format not in allowed_types:
-        raise HTTPException(status_code=400, detail="Invalid audio format.")
+            if inferred_content_type not in allowed_content_types:
+                raise HTTPException(status_code=400, detail=f"Invalid audio format. Allowed formats: {', '.join(allowed_content_types)}")
+            #If inferred type is in allowed types, set the content type
+            file.content_type = inferred_content_type #type: ignore
+        else:
+            raise HTTPException(status_code=400, detail="Invalid audio format or missing Content-Type header.")
+
+    # 2. Determine File Format
+    file_format = file.filename.split(".")[-1].lower() if file.filename else "wav"  # Default to wav
+    if file.content_type == "audio/mpeg":
+        file_format = "mp3"  # Correctly handle MP3
+    if file.content_type == "audio/3gpp":
+        file_format = "3gp"
+    if file.content_type == "audio/m4a":
+        file_format = "m4a"
+    if file.content_type == "audio/ogg":
+        file_format = "ogg"
+    if file.content_type == "audio/flac":
+        file_format = "flac"
+
 
     file_bytes = await file.read()
 
+
     try:
         wav_file = convert_audio_to_wav(file_bytes, file_format)
-        print(wav_file)
         transcription = transcribe_audio(wav_file)
-        context = update_context(call_id, transcription, tokenizer) #update context
-        scam_prob = predict_scam(context, model, tokenizer, device)  # Use CONTEXT
+        context = update_context(call_id, transcription, tokenizer)
+        scam_prob = predict_scam(context, model, tokenizer, device)
         status, _ = get_status_details(scam_prob)
-        # No database interaction here, only in-memory updates
 
         return JSONResponse(content={"scam_probability": scam_prob, "status": status, "transcription": transcription})
 

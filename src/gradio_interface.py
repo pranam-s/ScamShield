@@ -2,6 +2,7 @@ import gradio as gr
 import torch
 from train import train_model
 from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details
+import mimetypes  # Import the mimetypes library
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model, tokenizer = train_model()
@@ -12,7 +13,21 @@ def scam_detection_interface(audio_file_path):
     try:
         with open(audio_file_path, "rb") as f:
             file_bytes = f.read()
-        file_format = "mp3" if audio_file_path.endswith(".mp3") else "wav"
+
+        # Use mimetypes to guess the file type
+        mime_type, _ = mimetypes.guess_type(audio_file_path)
+        if mime_type:
+            file_format = mime_type.split("/")[-1] #audio/mpeg -> mpeg
+            #handle common file formats
+            if file_format == "mpeg":
+                file_format = "mp3"
+            if file_format == "wave":
+                file_format = "wav"
+            if file_format == "3gpp":
+                file_format = "3gp"
+        else:
+            file_format = "wav"  # Default to wav if type is unknown
+
         wav_file = convert_audio_to_wav(file_bytes, file_format)
         transcription = transcribe_audio(wav_file)
         scam_prob = predict_scam(transcription, model, tokenizer, device)
@@ -59,7 +74,7 @@ with gr.Blocks(css="""
 """) as demo:
     gr.Markdown("# Real-Time Scam Call Detection")
     gr.Markdown("Upload an audio file to check if it's a scam call and get a detailed analysis based on the audio transcription.")
-    
+
     with gr.Tabs():
         with gr.TabItem("Detection"):
             gr.Markdown("## Upload an Audio File for Scam Detection")
@@ -73,8 +88,8 @@ with gr.Blocks(css="""
         with gr.TabItem("Education"):
             gr.Markdown("## Scam Prevention Information")
             education_output = gr.HTML(label="Educational Content", value=education_module())
-    
+
     gr.Markdown("### Powered by Real-Time Scam Detection Prototype")
-    
+
 if __name__ == "__main__":
     demo.launch(share=True)

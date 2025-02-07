@@ -1,7 +1,8 @@
 import io
 import torch
 import speech_recognition as sr
-from pydub import AudioSegment
+import librosa  # Import librosa
+import soundfile as sf  # Import soundfile
 
 def get_status_details(scam_prob):
     if scam_prob >= 0.8:
@@ -13,23 +14,16 @@ def get_status_details(scam_prob):
 
 def convert_audio_to_wav(file_bytes, file_format):
     try:
-        # Use AudioSegment.from_file with explicit format
-        audio = AudioSegment.from_file(io.BytesIO(file_bytes), format=file_format)
+        # Load audio using librosa, automatically resampling to 22050 Hz
+        y, sr = librosa.load(io.BytesIO(file_bytes), sr=22050, mono=True)
 
-        # Explicitly set frame rate and channels (if not already set)
-        if audio.frame_rate == 0:
-            audio = audio.set_frame_rate(44100)  # Common default
-        if audio.channels == 0:
-            audio = audio.set_channels(1)  # Mono is often better for speech
-
-        # Export to WAV
+        # Convert to WAV format using soundfile
         wav_io = io.BytesIO()
-        audio.export(wav_io, format="wav")
+        sf.write(wav_io, y, sr, format='WAV', subtype='PCM_16')
         wav_io.seek(0)
         return wav_io
-
     except Exception as e:
-        print(f"Audio conversion error: {e}")  # More detailed error logging
+        print(f"Audio conversion error (librosa): {e}")
         raise Exception(f"Error processing audio file: {e}")
 
 def transcribe_audio(wav_file):
