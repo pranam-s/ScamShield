@@ -1,15 +1,17 @@
 import os
 import sqlite3
 import pandas as pd
-from transformers import DistilBertForSequenceClassification, Trainer, TrainingArguments, DistilBertTokenizer
+from transformers import DistilBertForSequenceClassification, Trainer, TrainingArguments, DistilBertTokenizer, get_linear_schedule_with_warmup
 from dataset_setup import load_and_prepare_dataset, tokenize_dataset
 from datasets import Dataset
+import torch
 
 MODEL_NAME = "distilbert-base-uncased"
 CACHE_DIR = "./hf_models"
 MODEL_DIR = "model/scam_detector"
-DATABASE_PATH = "scam_calls.db"  # Add database path
-DATASET_VERSION = "1.0" #for model metadata
+DATABASE_PATH = "scam_calls.db"
+DATASET_VERSION = "1.0"
+EVAL_DATASET_SIZE = 0.1 # Fraction of dataset to use for evaluation
 
 def get_tokenizer_and_model():
     tokenizer = DistilBertTokenizer.from_pretrained(MODEL_NAME, cache_dir=CACHE_DIR)
@@ -20,6 +22,12 @@ def get_tokenizer_and_model():
         model = DistilBertForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2, cache_dir=CACHE_DIR)
         print(f"Loaded pre-trained model {MODEL_NAME}")
     return tokenizer, model
+
+def compute_metrics(p): # NEW - Compute metrics for evaluation
+    metric = load_metric("accuracy") # or "f1", "recall", "precision"
+    logits, labels = p.predictions, p.label_ids
+    predictions = np.argmax(logits, axis=-1)
+    return metric.compute(predictions=predictions, references=labels)
 
 def load_feedback_data(db_path=DATABASE_PATH):
     """Loads data with user feedback from the database."""
@@ -90,56 +98,69 @@ def init_db():
         db.commit()
 
 def train_model(retrain=False):
-    """Trains or retrains the model."""
+    """Trains or retrains the model with optimizations."""
     tokenizer, model = get_tokenizer_and_model()
 
     if not retrain and os.path.exists(MODEL_DIR):
         print("Loading existing trained model.")
-        return model, tokenizer
+        return model, tokenizer, MODEL_DIR #Return model_dir
 
     print("Training or retraining model...")
 
     # Initialize the database (ensure tables exist)
     init_db()
 
-    # Load initial dataset
+    # Load and split dataset
     dataset = load_and_prepare_dataset(csv_path="dataset.csv")
+    dataset = dataset.train_test_split(test_size=EVAL_DATASET_SIZE, stratify_by_column="label", seed=42) # Stratified split
+    train_dataset = dataset["train"]
+    eval_dataset = dataset["test"]
+
 
     if retrain:
-        # Load feedback data
+        # Load feedback data and augment training set
         feedback_df = load_feedback_data()
         if feedback_df is not None and not feedback_df.empty:
             print(f"Loaded {len(feedback_df)} feedback records.")
-            # Combine initial dataset and feedback data
-            initial_df = dataset.to_pandas()
-            combined_df = pd.concat([initial_df, feedback_df], ignore_index=True)
-            # Remove duplicates
-            combined_df = combined_df.drop_duplicates(subset=['text'])
-            dataset = Dataset.from_pandas(combined_df)
-            print(f"Combined dataset size: {len(dataset)}")
+            initial_train_df = train_dataset.to_pandas() # Use train_dataset, not full dataset
+            combined_train_df = pd.concat([initial_train_df, feedback_df], ignore_index=True)
+            combined_train_df = combined_train_df.drop_duplicates(subset=['text']) # Remove duplicates
+            train_dataset = Dataset.from_pandas(combined_train_df) # Update train_dataset
+            print(f"Combined training dataset size: {len(train_dataset)}")
         else:
             print("No feedback data found or loaded.")
 
-    tokenized_dataset = tokenize_dataset(dataset)
+
+    tokenized_train_dataset = tokenize_dataset(train_dataset)
+    tokenized_eval_dataset = tokenize_dataset(eval_dataset) # Tokenize eval dataset
 
     training_args = TrainingArguments(
         output_dir="./results",
-        evaluation_strategy="no",  # No evaluation during training.  Could add validation set.
+        evaluation_strategy="epoch", # Evaluate every epoch
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
-        num_train_epochs=3,
+        num_train_epochs=3, # Keep epochs relatively low for faster training
         save_strategy="epoch",
         logging_dir="./logs",
         logging_steps=10,
-        report_to="none"
+        report_to="none",
+        learning_rate=2e-5, # Recommended learning rate for DistilBERT fine-tuning
+        weight_decay=0.01, # Add weight decay for regularization
+        #scheduler and warmup are now handled in trainer definition below
     )
 
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=tokenized_dataset,
-        # eval_dataset=tokenized_eval_dataset,  # Add if you have a separate evaluation set
-        # compute_metrics=compute_metrics,  # Add if you want to compute metrics during training
+        train_dataset=tokenized_train_dataset,
+        eval_dataset=tokenized_eval_dataset, # Pass evaluation dataset
+        compute_metrics=compute_metrics, # Pass compute_metrics function
+        optimizers = (torch.optim.AdamW(model.parameters(), lr=training_args.learning_rate, weight_decay=training_args.weight_decay),
+                      get_linear_schedule_with_warmup( # Learning rate scheduler
+                          optimizer=torch.optim.AdamW(model.parameters(), lr=training_args.learning_rate, weight_decay=training_args.weight_decay),
+                          num_warmup_steps=0, # Adjust warmup steps as needed
+                          num_training_steps=len(tokenized_train_dataset) * training_args.num_train_epochs // training_args.per_device_train_batch_size, # Correctly calculate training steps
+                      ))
     )
 
     trainer.train()
@@ -151,14 +172,16 @@ def train_model(retrain=False):
     # Update model metadata
     with sqlite3.connect(DATABASE_PATH) as db:
         cursor = db.cursor()
+        eval_metrics = trainer.evaluate(eval_dataset=tokenized_eval_dataset) # Evaluate and get metrics
+        accuracy = eval_metrics.get("eval_accuracy") # Get accuracy, adjust key if you use different metric
         cursor.execute("""
-            INSERT INTO model_metadata (model_name, dataset_version, training_epochs, number_labels)
-            VALUES (?, ?, ?, ?)
-        """, (MODEL_NAME, DATASET_VERSION, training_args.num_train_epochs, 2))  # Adjust as needed
+            INSERT INTO model_metadata (model_name, dataset_version, training_epochs, number_labels, accuracy)
+            VALUES (?, ?, ?, ?, ?)
+        """, (MODEL_NAME, DATASET_VERSION, training_args.num_train_epochs, 2, accuracy)) # Include accuracy
         db.commit()
 
     print(f"Model saved to {MODEL_DIR}")
-    return model, tokenizer
+    return model, tokenizer, MODEL_DIR #Return model_dir
 
 if __name__ == "__main__":
     train_model(retrain=True)  # Example of retraining
