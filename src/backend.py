@@ -162,14 +162,13 @@ async def detect_scam(
 ):
     """Detects scam probability in an audio chunk."""
 
-    allowed_types = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/3gpp", "audio/m4a", "audio/ogg", "audio/flac"]
-    if file.content_type not in allowed_types:
+    allowed_types = ["mp3", "wav", "3gp", "mpeg", "m4a", "ogg", "flac"]
+    file_format = file.filename.split(".")[-1].lower()  # More robust format detection
+
+    if file_format not in allowed_types:
         raise HTTPException(status_code=400, detail="Invalid audio format.")
 
     file_bytes = await file.read()
-    file_format = file.filename.split(".")[-1].lower()  # More robust format detection
-    if file_format not in ["mp3", "wav", "3gp", "mpeg", "m4a", "ogg", "flac"]:
-        file_format = "wav"
 
     try:
         wav_file = convert_audio_to_wav(file_bytes, file_format)
