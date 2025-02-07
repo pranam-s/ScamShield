@@ -21,6 +21,7 @@ MAX_CONTEXT_TOKENS = 512
 CONTEXT_TRUNCATION = 100  # Tokens to drop from start when exceeding MAX_CONTEXT_TOKENS
 CHUNK_DURATION = 10  # seconds
 ABANDONED_CALL_TIMEOUT = 30  # Seconds after which a call is considered abandoned
+DATASET_VERSION = "1.0"
 
 # --- Database Setup ---
 def get_db():
@@ -70,9 +71,11 @@ tokenizer = DistilBertTokenizer.from_pretrained(MODEL_NAME, cache_dir=CACHE_DIR)
 try:
     model = DistilBertForSequenceClassification.from_pretrained(MODEL_DIR)
     print("Loaded fine-tuned model from:", MODEL_DIR)
+    model_version = MODEL_DIR
 except Exception as e:
     print(f"Could not load fine-tuned model: {e}. Loading pre-trained model.")
     model = DistilBertForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2, cache_dir=CACHE_DIR)
+    model_version = MODEL_NAME #default
 model.to(device)
 model.eval()
 
@@ -222,7 +225,7 @@ async def save_call(
             call_data['context'],
             user_feedback,
             final_status,
-            MODEL_DIR
+            model_version
         ))
         db.commit()
         return JSONResponse(content={"message": "Call data saved successfully."})

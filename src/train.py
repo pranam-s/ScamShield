@@ -56,6 +56,39 @@ def load_feedback_data(db_path=DATABASE_PATH):
         print(f"Error loading feedback data: {e}")
         return None
 
+def init_db():
+    """Initializes the database (creates tables if they don't exist)."""
+    with sqlite3.connect(DATABASE_PATH) as db:
+        cursor = db.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS call_records (
+                call_id TEXT PRIMARY KEY,
+                start_time DATETIME,
+                end_time DATETIME,
+                duration REAL,
+                caller_number TEXT,
+                full_transcription TEXT,
+                user_feedback TEXT,
+                final_status TEXT,
+                model_version_used TEXT
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS model_metadata (
+                model_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                model_name TEXT,
+                training_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                dataset_version TEXT,
+                accuracy REAL,
+                training_epochs INTEGER,
+                number_labels INTEGER
+            )
+        """)
+        # Add indexes for faster lookups
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_call_id ON call_records (call_id)")
+
+        db.commit()
+
 def train_model(retrain=False):
     """Trains or retrains the model."""
     tokenizer, model = get_tokenizer_and_model()
@@ -65,6 +98,9 @@ def train_model(retrain=False):
         return model, tokenizer
 
     print("Training or retraining model...")
+
+    # Initialize the database (ensure tables exist)
+    init_db()
 
     # Load initial dataset
     dataset = load_and_prepare_dataset(csv_path="dataset.csv")
