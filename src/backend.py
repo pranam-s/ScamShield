@@ -67,10 +67,7 @@ def init_db():
 init_db()
 
 # --- Model Loading ---
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-tokenizer, model, model_version = load_model() # Load using function below
-
-def load_model(): #load model and tokenizer
+def load_model():
     tokenizer = DistilBertTokenizer.from_pretrained(MODEL_NAME, cache_dir=CACHE_DIR)
     try:
         model = DistilBertForSequenceClassification.from_pretrained(MODEL_DIR)
@@ -83,6 +80,10 @@ def load_model(): #load model and tokenizer
     model.to(device)
     model.eval()
     return tokenizer, model, model_version_name
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+tokenizer, model, model_version = load_model() # Load using function below
+
 
 # --- In-Memory Call Context Storage ---
 active_calls = {}  # {call_id: {context: "", chunk_count: 0, start_time: 0.0, last_chunk_time: 0.0}}
