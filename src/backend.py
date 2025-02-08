@@ -3,10 +3,14 @@ import os
 import sqlite3
 import time
 import uuid
+import base64
+import filetype  
 import torch
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi import Body
+from pydantic import BaseModel
 from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
 from datetime import datetime
 from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details
@@ -23,6 +27,10 @@ CONTEXT_TRUNCATION = 100
 ABANDONED_CALL_TIMEOUT = 30
 DATASET_VERSION = "1.0"
 ALLOWED_AUDIO_FORMATS = ["mp3", "wav", "3gp", "mpeg", "m4a", "ogg", "flac"]
+
+class ScamDetectionRequest(BaseModel):
+    call_id: str
+    base64: str
 
 # --- Database Setup ---
 def get_db():
@@ -113,24 +121,24 @@ app = FastAPI(title="Scam Detection API")
 
 @app.post("/detect-scam/")
 async def detect_scam(
-    file: UploadFile = File(...),
-    call_id: str = Form(...),
+    request: ScamDetectionRequest,
     db: sqlite3.Connection = Depends(get_db)
 ):
     """Detects scam probability in an audio chunk."""
     temp_file_path = None
     try:
-        if not file.filename:
-            raise HTTPException(status_code=400, detail="Filename is missing.")
-        file_extension = file.filename.split(".")[-1].lower()
+        file_bytes = base64.b64decode(request.base64)
+        kind = filetype.guess(file_bytes)
+        if not kind:
+            raise HTTPException(status_code=400, detail="Could not detect file type from provided data.")
+        file_extension = kind.extension
         if file_extension not in ALLOWED_AUDIO_FORMATS:
-            raise HTTPException(status_code=400, detail=f"Invalid file format. Allowed formats: {', '.join(ALLOWED_AUDIO_FORMATS)}")
-        file_bytes = await file.read()
-        with open(f"{random.randint(1,100)}.{file_extension}", "wb") as tmp_file:
-            tmp_file.write(file_bytes)
-            temp_file_path = tmp_file.name
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file format. Allowed formats: {', '.join(ALLOWED_AUDIO_FORMATS)}"
+            )
 
-        wav_file = convert_audio_to_wav(temp_file_path)  # Passing file path; file format auto-detected
+        wav_file = convert_audio_to_wav(file_bytes, file_format=file_extension)
         transcription = transcribe_audio(wav_file)
         context = update_context(call_id, transcription, tokenizer)
         scam_prob = predict_scam(context, model, device)
@@ -147,9 +155,9 @@ async def detect_scam(
 
 @app.post("/save-call/")
 async def save_call(
-    call_id: str = Form(...),
-    caller_number: str = Form(None),
-    user_feedback: str = Form(None),
+    call_id: str = Body(...),
+    caller_number: str = Body(None),
+    user_feedback: str = Body(None),
     db: sqlite3.Connection = Depends(get_db)
 ):
     """Saves call data to the database after the call ends (with user consent)."""
