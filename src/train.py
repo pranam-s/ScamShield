@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 from transformers import DistilBertForSequenceClassification, Trainer, TrainingArguments, DistilBertTokenizer, get_linear_schedule_with_warmup
 from dataset_setup import load_and_prepare_dataset, tokenize_dataset
-from datasets import Dataset, load_metric
+from datasets import Dataset
+import evaluate
 import torch
 
 MODEL_NAME = "distilbert-base-uncased"
@@ -25,10 +26,9 @@ def get_tokenizer_and_model():
     return tokenizer, model
 
 def compute_metrics(p):
-    metric = load_metric("accuracy")
-    logits, labels = p.predictions, p.label_ids
-    predictions = np.argmax(logits, axis=-1)
-    return metric.compute(predictions=predictions, references=labels)
+    metric = evaluate.load("accuracy")
+    predictions = np.argmax(p.predictions, axis=-1)
+    return metric.compute(predictions=predictions, references=p.label_ids)
 
 def load_feedback_data(db_path=DATABASE_PATH):
     try:

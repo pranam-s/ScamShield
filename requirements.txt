@@ -8,4 +8,5 @@ python-multipart
 SpeechRecognition
 pydub
 gradio
-simpleaudio
+pyaudio
+evaluate
