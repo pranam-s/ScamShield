@@ -103,7 +103,7 @@ def train_model(retrain=False):
     print("Training or retraining model...")
     init_db()
     dataset = load_and_prepare_dataset(csv_path="dataset.csv")
-    dataset = dataset.train_test_split(test_size=EVAL_DATASET_SIZE, stratify_by_column="label", seed=42)
+    dataset = dataset.train_test_split(test_size=EVAL_DATASET_SIZE, seed=42)
     train_dataset = dataset["train"]
     eval_dataset = dataset["test"]
 
