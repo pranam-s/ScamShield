@@ -1,92 +1,118 @@
-# ScamShield
+# 🛡️ ScamShield: Real-Time Scam Call Detection 🛡️
 
-Detect scam calls in real-time using AI—speech-to-text and NLP to safeguard Indian language users!
 
-## Overview
+**Stop phone scams before they start.  ScamShield is an AI-powered mobile application that provides real-time protection against scam calls, especially for vulnerable users and those speaking Indian languages.**
 
-This project is a prototype for detecting scam calls in real time using a fine-tuned DistilBERT model. It leverages speech-to-text transcription and natural language processing to predict the scam probability of an audio file. The project includes:
+## The Urgent Problem: Phone Scams are Exploding
 
-- **Data Setup**: Loading and tokenizing a dataset (`dataset.csv`) with entries in the top 10 Indian languages.
-- **Model Training**: Fine-tuning a DistilBERT model with optimized training parameters. If a trained model exists in `model/scam_detector`, it is loaded instead of retraining.
-- **User Interface**: A Gradio interface featuring two tabs:
-  - **Detection Tab**: Upload an audio file (MP3/WAV) and view the transcript, scam probability, and a color-coded status (green for safe, yellow for suspicious, red for scam).
-  - **Education Tab**: Detailed information about common scam call tactics and prevention tips.
-- **FastAPI Backend**: A REST API backbone exposing endpoints for scam detection, educational content, health check, and model information.
+Phone scams are a pervasive and devastating problem, with traditional spam filters offering no defense against live, conversational fraud. Scammers are sophisticated social engineers, and their tactics are becoming increasingly complex.  Our research underscores the urgency:
+
+![Google form data](form 1.jpg)
+
+## ScamShield:  AI-Powered Real-Time Protection
+
+ScamShield is a revolutionary approach to phone security. We go beyond simple number blocking, using cutting-edge AI to analyze the *conversation itself* as it happens. ScamShield provides:
+
+*   **Instant Scam Detection:**  Our fine-tuned DistilBERT AI model, leveraging Natural Language Processing, analyzes speech in real-time for scam indicators.
+*   **Proactive, Actionable Alerts:**  When a scam is detected, ScamShield immediately alerts the user with clear warnings and suggests actions to take, empowering them to hang up and stay safe.
+*   **Privacy-First Design:**  We prioritize user privacy. While demonstrating cloud deployment for this hackathon, our vision includes complete on-device processing for maximum security.
+*   **Adaptive AI - Always Learning:** ScamShield's backend is built for continuous improvement. With user feedback, our AI model learns and adapts to new scam tactics, ensuring long-term protection.
+*   **Empowering Education:**  ScamShield isn't just about technology; it's about user empowerment.  We include a built-in educational module to inform users about scam tactics and prevention, a feature users overwhelmingly requested.
+
+![Google form data](form2.jpg)
+
+## Under the Hood: How ScamShield Works
+
+1.  **Live Call Analysis:**  Built with React Native, ScamShield seamlessly integrates with phone calls.
+2.  **Real-Time Transcription:**  Audio is converted to text using advanced Speech-to-Text technology.
+3.  **AI Brain:**  Our fine-tuned DistilBERT model analyzes the text for scam indicators like:
+    *   OTP and personal information requests
+    *   Urgency and pressure tactics
+    *   Remote access software demands
+    *   Suspicious offers or threats
+4.  **Immediate Alerts:**  Based on AI analysis, ScamShield delivers instant, color-coded alerts: Green (Safe), Yellow (Suspicious), Red (Scam).
+
+## Technology Powerhouse
+
+*   **Frontend:** React Native & Expo (for cross-platform reach)
+*   **Backend:** FastAPI (Python - for speed and scalability)
+*   **AI Engine:** Fine-tuned DistilBERT (Hugging Face Transformers - state-of-the-art NLP)
+*   **Speech-to-Text:** Google Speech Recognition
+*   **Database:** SQLite (for metadata and adaptive learning data)
+*   **Deployment:** Render (cloud-based for scalability demonstration)
+
+## Get Started - Run ScamShield
+
+**1. Install Dependencies:**
+
+```bash
+pip install -r requirements.txt
+```
+
+**(See `requirements.txt` in GitHub repository for full list)**
+
+**2. Train the AI Model (Optional):**
+
+```bash
+python src/train.py
+```
+
+**3. Launch the Backend API:**
+
+```bash
+python src/backend.py
+```
+
+(API accessible at `http://0.0.0.0:8000`)
+
+**4. Run the Gradio Demo Interface (for quick testing):**
+
+```bash
+python src/gradio_interface.py
+```
+
+**5. Start the Expo Frontend App:**
+
+```bash
+npx expo start
+```
+
+Expo credentials:
+Username: gourang1
+Password: Josh@123
+
+(Follow Expo instructions to run on emulator/device)
+
+## Project Impact and Future Vision
+
+Our user research confirms the desperate need for real-time scam protection. ScamShield is not just a tech demo; it's a solution with real-world impact.
+
+**Future Roadmap:**
+
+*   **Full On-Device AI:**  Prioritize local AI processing for enhanced user privacy.
+*   **Adaptive Learning Toggle:**  Give users control over data contribution for model improvement.
+*   **Expand Language Support:**  Focus on comprehensive support for Indian languages and beyond.
+*   **Advanced Alerting:**  Integrate emergency contacts and reporting features.
+*   **Personalized Protection:**  User-customizable whitelists/blacklists and integration with existing security tools.
+
+## Team TechnoTitans
+
+We are TechnoTitans, driven by a passion to use technology to build a safer world. ScamShield is our commitment to protecting vulnerable individuals from the growing threat of phone scams.
 
 ## Project Structure
 
 ```
 .
-├── dataset.csv                 # Dataset file with 2000 entries
-├── model/                      # Directory where the trained model is stored (scam_detector)
+├── dataset.csv
+├── model/
+├── app/
 └── src/
-    ├── __init__.py
-    ├── dataset_setup.py        # Module for dataset loading & tokenization
-    ├── train.py                # Module for model training & saving
-    ├── predict.py              # Module for audio conversion, transcription, and prediction
-    ├── gradio_interface.py     # Gradio interface with detection and educational modules
-    └── backend.py              # FastAPI backend with API endpoints
+    ├── dataset_setup.py
+    ├── train.py
+    ├── predict.py
+    ├── gradio_interface.py
+    └── backend.py
 ```
 
-## Setup Instructions
 
-1. **Install Dependencies**
-
-   Run the following commands to install required libraries:
-   ```bash
-   pip install transformers datasets torch scikit-learn fastapi uvicorn python-multipart SpeechRecognition pydub gradio
-   ```
-
-2. **Dataset**
-
-   - Place your `dataset.csv` in the project root.
-   - Ensure the CSV has a column named `"text"` containing the call transcripts.
-
-3. **Train the Model**
-
-   - To train (or load, if already saved) the model, run:
-     ```bash
-     python src/train.py
-     ```
-   - The model and tokenizer will be saved in the `model/scam_detector` directory.
-
-4. **Launch the Gradio Interface**
-
-   - To start the user-friendly interface, run:
-     ```bash
-     python src/gradio_interface.py
-     ```
-   - You will see a two-tab interface for audio-based scam detection and educational content.
-
-5. **Run the FastAPI Backend**
-
-   - To start the API server, execute:
-     ```bash
-     python src/backend.py
-     ```
-   - The API will be accessible at `http://0.0.0.0:8000` with endpoints such as:
-     - `POST /detect-scam/` – for scam detection via audio upload.
-     - `GET /education/` – for educational information.
-     - `GET /health/` – for a health check.
-     - `GET /model-info/` – for details about the model.
-
-## Usage
-
-- **Gradio Interface**
-  - Navigate to the Detection tab to upload an audio file and get a transcription with scam probability.
-  - The displayed result includes a color-coded status: **green** for safe (scam probability < 0.4), **yellow** for suspicious (0.4 to 0.8), and **red** for scam (≥ 0.8).
-  - The Education tab offers best practices and warning signs to help avoid scam calls.
-
-- **FastAPI Endpoints**
-  - Use tools like Postman or cURL to interact with the backend API.
-  - Example using cURL for scam detection:
-    ```bash
-    curl -X POST "http://0.0.0.0:8000/detect-scam/" -F "file=@your_audio_file.mp3"
-    ```
-
-## Additional Notes
-
-- The code has been refactored to remove redundancy and improve clarity.
-- Training parameters have been optimized (increased batch size and epochs) to enhance model accuracy.
-- The Gradio interface has been beautified with a two-tab design and dynamic color indicators.
-- The FastAPI backend is provided to demonstrate how the model can be deployed as an API.
+---
