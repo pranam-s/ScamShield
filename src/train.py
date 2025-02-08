@@ -172,4 +172,4 @@ def train_model(retrain=False):
     return model, tokenizer, MODEL_DIR
 
 if __name__ == "__main__":
-    train_model(retrain=True)
+    train_model(retrain=False)

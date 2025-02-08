@@ -10,3 +10,4 @@ pydub
 gradio
 pyaudio
 evaluate
+filetype

@@ -31,7 +31,7 @@ def convert_audio_to_wav(input_data, file_format=None):
     else:
         # input_data is assumed to be a file path
         file_format = file_format or input_data.split('.')[-1].lower()
-        audio = AudioSegment.from_file(input_data, format=file_format)
+        audio = AudioSegment.from_file(input_data, file_format)
     
     wav_io = io.BytesIO()
     audio.export(wav_io, format="wav")

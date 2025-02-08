@@ -11,7 +11,7 @@ from transformers import DistilBertForSequenceClassification, DistilBertTokenize
 from datetime import datetime
 from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details
 import mimetypes
-import tempfile
+import random
 
 # --- Configuration ---
 MODEL_NAME = "distilbert-base-uncased"
@@ -126,7 +126,7 @@ async def detect_scam(
         if file_extension not in ALLOWED_AUDIO_FORMATS:
             raise HTTPException(status_code=400, detail=f"Invalid file format. Allowed formats: {', '.join(ALLOWED_AUDIO_FORMATS)}")
         file_bytes = await file.read()
-        with tempfile.NamedTemporaryFile(suffix=f".{file_extension}", delete=False) as tmp_file:
+        with open(f"{random.randint(1,100)}.{file_extension}", "wb") as tmp_file:
             tmp_file.write(file_bytes)
             temp_file_path = tmp_file.name
 
