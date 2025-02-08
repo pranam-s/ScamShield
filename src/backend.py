@@ -8,10 +8,10 @@ import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse, HTMLResponse
 from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
-from datetime import datetime, timedelta
+from datetime import datetime
 from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details
 import mimetypes
-import tempfile # Import tempfile
+import tempfile
 
 # --- Configuration ---
 MODEL_NAME = "distilbert-base-uncased"
@@ -22,7 +22,7 @@ MAX_CONTEXT_TOKENS = 512
 CONTEXT_TRUNCATION = 100
 ABANDONED_CALL_TIMEOUT = 30
 DATASET_VERSION = "1.0"
-ALLOWED_AUDIO_FORMATS = ["mp3", "wav", "3gp", "mpeg", "m4a", "ogg", "flac"] # Allowed extensions
+ALLOWED_AUDIO_FORMATS = ["mp3", "wav", "3gp", "mpeg", "m4a", "ogg", "flac"]
 
 # --- Database Setup ---
 def get_db():
@@ -60,7 +60,6 @@ def init_db():
                 number_labels INTEGER
             )
         """)
-        # Add indexes for faster lookups
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_call_id ON call_records (call_id)")
         db.commit()
 
@@ -76,21 +75,16 @@ def load_model():
     except Exception as e:
         print(f"Could not load fine-tuned model: {e}. Loading pre-trained model.")
         model = DistilBertForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2, cache_dir=CACHE_DIR)
-        model_version_name = MODEL_NAME #default
+        model_version_name = MODEL_NAME
     model.to(device)
     model.eval()
     return tokenizer, model, model_version_name
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-tokenizer, model, model_version = load_model() # Load using function below
-
+tokenizer, model, model_version = load_model() 
 
 # --- In-Memory Call Context Storage ---
 active_calls = {}  # {call_id: {context: "", chunk_count: 0, start_time: 0.0, last_chunk_time: 0.0}}
-
-# --- FastAPI App ---
-app = FastAPI(title="Scam Detection API")
-
 
 def update_context(call_id: str, new_text: str, tokenizer) -> str:
     """Updates the conversation context for a given call_id."""
@@ -103,64 +97,53 @@ def update_context(call_id: str, new_text: str, tokenizer) -> str:
             "chunks": []
         }
 
-    # Combine previous context and new text
     full_context = active_calls[call_id]["context"] + " " + new_text
-
-    # Tokenize and truncate if necessary
     tokens = tokenizer.tokenize(full_context)
     if len(tokens) > MAX_CONTEXT_TOKENS:
         truncated_tokens = tokens[len(tokens) - MAX_CONTEXT_TOKENS + CONTEXT_TRUNCATION:]
         full_context = tokenizer.convert_tokens_to_string(truncated_tokens)
-
     active_calls[call_id]["context"] = full_context
     active_calls[call_id]["chunk_count"] += 1
     active_calls[call_id]["last_chunk_time"] = time.time()
     active_calls[call_id]["chunks"].append(new_text)
-
     return full_context
 
-# --- API Endpoints ---
+# --- FastAPI App ---
+app = FastAPI(title="Scam Detection API")
+
 @app.post("/detect-scam/")
 async def detect_scam(
     file: UploadFile = File(...),
     call_id: str = Form(...),
-    db: sqlite3.Connection = Depends(get_db)  # Database connection not used here
+    db: sqlite3.Connection = Depends(get_db)
 ):
     """Detects scam probability in an audio chunk."""
-    file_format = ""
-    temp_file = None # Initialize temp_file
+    temp_file_path = None
     try:
-        if not file.filename: # Check if filename exists
+        if not file.filename:
             raise HTTPException(status_code=400, detail="Filename is missing.")
-
         file_extension = file.filename.split(".")[-1].lower()
         if file_extension not in ALLOWED_AUDIO_FORMATS:
             raise HTTPException(status_code=400, detail=f"Invalid file format. Allowed formats: {', '.join(ALLOWED_AUDIO_FORMATS)}")
-        file_format = file_extension
-
-
         file_bytes = await file.read()
-
-        with tempfile.NamedTemporaryFile(suffix=f".{file_format}", delete=False) as tmp_file: # Create temp file
+        with tempfile.NamedTemporaryFile(suffix=f".{file_extension}", delete=False) as tmp_file:
             tmp_file.write(file_bytes)
-            temp_file_path = tmp_file.name # Get temp file path
+            temp_file_path = tmp_file.name
 
-        wav_file = convert_audio_to_wav(temp_file_path) # Pass temp file path
-        transcription = transcribe_audio(wav_file) # Use shared function
+        wav_file = convert_audio_to_wav(temp_file_path)  # Passing file path; file format auto-detected
+        transcription = transcribe_audio(wav_file)
         context = update_context(call_id, transcription, tokenizer)
-        scam_prob = predict_scam(context, model, device) # Use shared function
-        status, _ = get_status_details(scam_prob) # Use shared function
-
-
+        scam_prob = predict_scam(context, model, device)
+        status, _ = get_status_details(scam_prob)
         return JSONResponse(content={"scam_probability": scam_prob, "status": status, "transcription": transcription})
-    except HTTPException as http_exc: # Re-raise HTTP Exceptions
+    except HTTPException as http_exc:
         raise http_exc
-    except Exception as e: # Catch other exceptions and log them
+    except Exception as e:
         print(f"Error in detect_scam: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {e}") # Return 500 for server errors
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
     finally:
-        if temp_file_path: # Ensure temp file is deleted even if errors occur
-            os.unlink(temp_file_path) # Delete temp file after processing
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
 
 @app.post("/save-call/")
 async def save_call(
@@ -170,22 +153,19 @@ async def save_call(
     db: sqlite3.Connection = Depends(get_db)
 ):
     """Saves call data to the database after the call ends (with user consent)."""
-
     if call_id not in active_calls:
         raise HTTPException(status_code=404, detail="Call ID not found.")
-
-    call_data = active_calls.pop(call_id)  # Retrieve AND remove from active_calls
+    call_data = active_calls.pop(call_id)
     start_time = datetime.fromtimestamp(call_data['start_time'])
     end_time = datetime.now()
     duration = end_time.timestamp() - call_data['start_time']
 
-    # Get the last status predicted
     if call_data['chunks']:
         last_chunk_text = call_data['chunks'][-1]
-        last_scam_prob = predict_scam(last_chunk_text, model, tokenizer, device)
+        last_scam_prob = predict_scam(last_chunk_text, model, device)
         final_status, _ = get_status_details(last_scam_prob)
     else:
-        final_status = "Unknown" #no chunks
+        final_status = "Unknown"
 
     cursor = db.cursor()
     try:
@@ -217,15 +197,10 @@ async def save_call(
 async def abandoned_calls():
     """Removes abandoned calls from the active_calls dictionary."""
     now = time.time()
-    abandoned_ids = []
-    for call_id, call_data in active_calls.items():
-        if now - call_data['last_chunk_time'] > ABANDONED_CALL_TIMEOUT:
-            abandoned_ids.append(call_id)
-
+    abandoned_ids = [call_id for call_id, call_data in active_calls.items() if now - call_data['last_chunk_time'] > ABANDONED_CALL_TIMEOUT]
     for call_id in abandoned_ids:
         active_calls.pop(call_id)
         print("Abandoned Removed")
-
     return JSONResponse(content={"message": f"Removed {len(abandoned_ids)} abandoned calls."})
 
 @app.get("/education/")
@@ -248,21 +223,20 @@ async def health_check():
 
 @app.get("/model-info/")
 async def model_info():
-    # Fetch model metadata from the database
     try:
         with sqlite3.connect(DATABASE_PATH) as db:
+            db.row_factory = sqlite3.Row
             cursor = db.cursor()
-            cursor.execute("SELECT * FROM model_metadata ORDER BY model_id DESC LIMIT 1")  # Get the latest model
+            cursor.execute("SELECT * FROM model_metadata ORDER BY model_id DESC LIMIT 1")
             model_data = cursor.fetchone()
-
             if model_data:
                 info = {
-                    "model_name": model_data['model_name'],
-                    "training_date": model_data['training_date'],
-                    "dataset_version": model_data['dataset_version'],
-                    "accuracy": model_data['accuracy'],
-                    "training_epochs": model_data['training_epochs'],
-                    "number_labels": model_data['number_labels']
+                    "model_name": model_data["model_name"],
+                    "training_date": model_data["training_date"],
+                    "dataset_version": model_data["dataset_version"],
+                    "accuracy": model_data["accuracy"],
+                    "training_epochs": model_data["training_epochs"],
+                    "number_labels": model_data["number_labels"]
                 }
             else:
                 info = {
@@ -274,7 +248,6 @@ async def model_info():
                     "number_labels": None
                 }
             return JSONResponse(content=info)
-
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 

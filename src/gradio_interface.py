@@ -1,36 +1,38 @@
 import gradio as gr
 import torch
 from train import train_model
-from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details # Import from predict
+from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details
 import mimetypes
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model, tokenizer, _ = train_model() # Load model using function in backend
+# Load the model (this loads from MODEL_DIR if available)
+model, tokenizer, _ = train_model()
 model.to(device)
 model.eval()
 
 def scam_detection_interface(audio_file_path):
-    file_format = ""
     try:
-        with open(audio_file_path, "rb") as f:
-            file_bytes = f.read()
-
+        # Determine the file format from the file path
         mime_type, _ = mimetypes.guess_type(audio_file_path)
         if mime_type:
             file_format = mime_type.split("/")[-1]
-            if file_format == "mpeg": #handle mpeg types
+            if file_format == "mpeg": 
                 file_format = "mp3"
-            if file_format == "wave": #handle wave types
+            if file_format == "wave":
                 file_format = "wav"
-            if file_format == "3gpp": #handle 3gpp types
+            if file_format == "3gpp":
                 file_format = "3gp"
         else:
-            file_format = "wav"  # Default to wav if type is unknown
+            file_format = "wav"  # Default
 
-        wav_file = convert_audio_to_wav(file_bytes, file_format) # Use shared function
-        transcription = transcribe_audio(wav_file) # Use shared function
-        scam_prob = predict_scam(transcription, model, device) # Use shared function
-        status, color = get_status_details(scam_prob) # Use shared function
+        # Read file bytes and convert to wav using pydub
+        with open(audio_file_path, "rb") as f:
+            file_bytes = f.read()
+
+        wav_file = convert_audio_to_wav(file_bytes, file_format)
+        transcription = transcribe_audio(wav_file)
+        scam_prob = predict_scam(transcription, model, device)
+        status, color = get_status_details(scam_prob)
 
         status_box_html = f"""
         <div style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; display: flex; align-items: center; background-color: #fff;">
@@ -65,7 +67,6 @@ def education_module():
     """
     return content
 
-# Updated Gradio Blocks layout with improved UI
 with gr.Blocks(css="""
     .gradio-container {background-color: #f9f9f9; font-family: Arial, sans-serif; padding: 20px;}
     .tab-header {padding: 10px; background-color: #e6e6e6; border-radius: 5px;}
@@ -92,4 +93,4 @@ with gr.Blocks(css="""
     gr.Markdown("### Powered by Real-Time Scam Detection Prototype")
 
 if __name__ == "__main__":
-    demo.launch(share=True)
+    demo.launch(share=True, debug=True)
