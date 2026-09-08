@@ -1,0 +1,97 @@
+[project]
+name = "scamshield"
+version = "0.1.0"
+description = "ScamShield - real-time scam phone call detection: FastAPI backend, DistilBERT scam classifier, and Gradio demo UI."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Team TechnoTitans" }]
+requires-python = ">=3.12"
+keywords = ["scam-detection", "nlp", "distilbert", "fastapi", "speech-recognition"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "pandas>=2.2",
+    "datasets>=3.0",
+    "transformers>=4.46",
+    "torch>=2.6",
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "SpeechRecognition>=3.10",
+    "pydub>=0.25.1",
+    # Python 3.13 removed the stdlib audioop module (PEP 594) which pydub relies on.
+    "audioop-lts>=0.2.1; python_version >= '3.13'",
+    "gradio>=5.0",
+    "evaluate>=0.4.3",
+    "filetype>=1.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "httpx>=0.27",  # required by fastapi.testclient
+]
+
+[tool.uv]
+# Keep ML installs small: CPU-only torch wheels (no CUDA runtime).
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["src/gradio_interface.py"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["frontend"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "C4",  # flake8-comprehensions
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501", # long lines allowed up to ruff format's judgement; formatter keeps lines sane
+]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_optional = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+module = ["torch.*", "transformers.*", "datasets.*", "evaluate.*", "pydub.*", "speech_recognition.*", "filetype.*", "gradio.*", "uvicorn.*"]
+ignore_missing_imports = true
+follow_imports = "skip"

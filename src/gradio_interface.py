@@ -1,35 +1,59 @@
+"""Gradio demo UI: upload an audio file, get a scam verdict plus education tab."""
+
+from __future__ import annotations
+
+import logging
+import mimetypes
+from pathlib import Path
+from typing import Any
+
 import gradio as gr
 import torch
+
+from predict import (
+    convert_audio_to_wav,
+    get_status_details,
+    predict_scam,
+    transcribe_audio,
+)
 from train import train_model
-from predict import convert_audio_to_wav, transcribe_audio, predict_scam, get_status_details
-import mimetypes
+
+logger = logging.getLogger(__name__)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# Load the model (this loads from MODEL_DIR if available)
-model, tokenizer, _ = train_model()
-model.to(device)
-model.eval()
 
-def scam_detection_interface(audio_file_path):
+_resources: tuple[Any, Any] | None = None
+
+
+def get_resources() -> tuple[Any, Any]:
+    """Load (or train, if no weights exist) the model on first use."""
+    global _resources
+    if _resources is None:
+        model, tokenizer, _ = train_model()
+        model.to(device)
+        model.eval()
+        _resources = (model, tokenizer)
+    return _resources
+
+
+def guess_audio_format(file_path: str) -> str:
+    """Map a file path to a pydub-compatible format name."""
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type or "/" not in mime_type:
+        return "wav"  # sensible default for unlabeled uploads
+    fmt = mime_type.split("/")[-1]
+    return {"mpeg": "mp3", "wave": "wav", "3gpp": "3gp", "x-wav": "wav", "aac": "adts"}.get(
+        fmt, fmt
+    )
+
+
+def scam_detection_interface(audio_file_path: str) -> tuple[str, str]:
+    model, _tokenizer = get_resources()
     try:
-        # Determine the file format from the file path
-        mime_type, _ = mimetypes.guess_type(audio_file_path)
-        if mime_type:
-            file_format = mime_type.split("/")[-1]
-            if file_format == "mpeg": 
-                file_format = "mp3"
-            if file_format == "wave":
-                file_format = "wav"
-            if file_format == "3gpp":
-                file_format = "3gp"
-        else:
-            file_format = "wav"  # Default
+        file_format = guess_audio_format(audio_file_path)
+        file_bytes = Path(audio_file_path).read_bytes()
 
-        # Read file bytes and convert to wav using pydub
-        with open(audio_file_path, "rb") as f:
-            file_bytes = f.read()
-
-        wav_file = convert_audio_to_wav(file_bytes, file_format)
+        wav_file = convert_audio_to_wav(file_bytes, file_format=file_format)
         transcription = transcribe_audio(wav_file)
         scam_prob = predict_scam(transcription, model, device)
         status, color = get_status_details(scam_prob)
@@ -42,11 +66,13 @@ def scam_detection_interface(audio_file_path):
         """
         result_text = f"Transcription: {transcription}\nScam Probability: {scam_prob:.2f}"
         return result_text, status_box_html
-    except Exception as e:
-        return f"Error: {str(e)}", ""
+    except Exception as exc:
+        logger.exception("Detection failed")
+        return f"Error: {exc}", ""
 
-def education_module():
-    content = """
+
+def education_module() -> str:
+    return """
     <h2>Scam Detection Educational Module</h2>
     <p>This module provides information on how to identify scam calls and avoid fraud.</p>
     <h3>Common Signs of Scam Calls:</h3>
@@ -65,16 +91,21 @@ def education_module():
     </ul>
     <p>This project leverages machine learning to help detect scam calls in real time using audio analysis and NLP.</p>
     """
-    return content
 
-with gr.Blocks(css="""
+
+with gr.Blocks(
+    css="""
     .gradio-container {background-color: #f9f9f9; font-family: Arial, sans-serif; padding: 20px;}
     .tab-header {padding: 10px; background-color: #e6e6e6; border-radius: 5px;}
     .output-row {display: flex; gap: 20px;}
     .output-row > * {flex: 1;}
-""") as demo:
+"""
+) as demo:
     gr.Markdown("# Real-Time Scam Call Detection")
-    gr.Markdown("Upload an audio file to check if it's a scam call and get a detailed analysis based on the audio transcription.")
+    gr.Markdown(
+        "Upload an audio file to check if it's a scam call and get a detailed "
+        "analysis based on the audio transcription."
+    )
 
     with gr.Tabs():
         with gr.TabItem("Detection"):
@@ -84,8 +115,11 @@ with gr.Blocks(css="""
                 result_text_output = gr.Textbox(label="Detection Result", interactive=False)
                 status_html_output = gr.HTML(label="Scam Status")
             detect_button = gr.Button("Detect Scam")
-            detect_button.click(fn=scam_detection_interface, inputs=audio_input,
-                                outputs=[result_text_output, status_html_output])
+            detect_button.click(
+                fn=scam_detection_interface,
+                inputs=audio_input,
+                outputs=[result_text_output, status_html_output],
+            )
         with gr.TabItem("Education"):
             gr.Markdown("## Scam Prevention Information")
             education_output = gr.HTML(label="Educational Content", value=education_module())
@@ -93,4 +127,6 @@ with gr.Blocks(css="""
     gr.Markdown("### Powered by Real-Time Scam Detection Prototype")
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    # share=True exposes a public gradio tunnel; enable only for demos.
     demo.launch(share=True, debug=True)
