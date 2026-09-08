@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Lint, type-check, test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies (locked)
+        run: uv sync --frozen
+
+      - name: Ruff lint
+        run: uv run ruff check src tests
+
+      - name: Ruff format check
+        run: uv run ruff format --check src tests
+
+      - name: Mypy type check
+        run: uv run mypy src
+
+      - name: Pytest with coverage
+        run: uv run pytest --cov=src --cov-report=term-missing
+
+      - name: Core-module coverage gate (>= 90%)
+        # train.py / gradio_interface.py are excluded from the gate: their
+        # untested functions require a real model download + training run.
+        run: |
+          uv run coverage report \
+            --include='src/predict.py,src/backend.py,src/dataset_setup.py,src/db.py,src/config.py' \
+            --fail-under=90
