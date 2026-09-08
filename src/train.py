@@ -38,7 +38,7 @@ def _accuracy_metric() -> Any:
 def compute_metrics(p: Any) -> dict[str, float]:
     metric = _accuracy_metric()
     predictions = np.argmax(p.predictions, axis=-1)
-    return metric.compute(predictions=predictions, references=p.label_ids)  # type: ignore[no-any-return]
+    return metric.compute(predictions=predictions, references=p.label_ids)
 
 
 def get_tokenizer_and_model() -> tuple[DistilBertTokenizer, DistilBertForSequenceClassification]:

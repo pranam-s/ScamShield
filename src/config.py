@@ -15,6 +15,7 @@ CACHE_DIR = PROJECT_ROOT / "hf_models"  # Hugging Face download cache
 MODEL_DIR = PROJECT_ROOT / "model" / "scam_detector"  # fine-tuned weights output
 DATASET_PATH = PROJECT_ROOT / "src" / "dataset.csv"
 DATASET_VERSION = "1.0"
+DATABASE_PATH = PROJECT_ROOT / "scam_calls.db"  # runtime SQLite database
 
 # --- Conversation context window ---
 MAX_CONTEXT_TOKENS = 512
