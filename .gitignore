@@ -169,3 +169,38 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# --- Project-specific (ScamShield) ---
+
+# Virtualenv artifacts accidentally committed previously - never again
+Scripts/
+share/
+pyvenv.cfg
+CACHEDIR.TAG
+pyvenv.cfg.bak
+
+# ML artifacts (large binaries, produced by training / first run)
+model/
+hf_models/
+results/
+logs/
+runs/
+*.safetensors
+*.bin
+*.pt
+*.onnx
+
+# Runtime databases
+*.db
+*.db-journal
+
+# Audio temp files
+*.wav.tmp
+temp_audio/
+
+# Node (frontend) - Expo/React Native
+frontend/node_modules/
+frontend/.expo/
+frontend/.expo-shared/
+frontend/npm-debug.*
+frontend/*.orig.*
