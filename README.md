@@ -74,7 +74,7 @@ would otherwise fall back to the *untrained* base model (it logs a loud
 warning). Produce real weights with:
 
 ```bash
-uv run python src/train.py            # trains on src/dataset.csv (~2k labelled utterances)
+uv run python src/train.py            # trains on src/dataset.csv (1,245 labelled records)
 ```
 
 Training records accuracy and metadata in SQLite (`model_metadata` table)

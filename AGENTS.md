@@ -15,7 +15,7 @@ src/
   db.py                SQLite schema + helpers (call_records, model_metadata,
                        load_feedback_data).
   gradio_interface.py  Demo UI. Model loads lazily on first detection.
-  dataset.csv          1,998 labelled utterances (text,label).
+  dataset.csv          1,245 labelled records (text,label).
 tests/                 Offline pytest suite (see tests/conftest.py for fakes).
 frontend/              Expo/React Native app (out of backend test scope).
 docs/                  AUDIT.md, style-guides/.

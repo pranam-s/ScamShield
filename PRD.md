@@ -56,7 +56,7 @@ call**, in plain language, with an action they can take immediately.
 5. **Mobile app** (Expo/React Native) and a **Gradio demo UI** for
    desktop testing.
 6. **Dataset & training pipeline** (`src/dataset_setup.py`, `src/train.py`)
-   on a ~2,000-utterance English scam/normal dataset.
+   on a 1,245-record English scam/normal dataset.
 
 ### Out of scope (for now)
 

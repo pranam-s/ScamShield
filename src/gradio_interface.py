@@ -93,14 +93,7 @@ def education_module() -> str:
     """
 
 
-with gr.Blocks(
-    css="""
-    .gradio-container {background-color: #f9f9f9; font-family: Arial, sans-serif; padding: 20px;}
-    .tab-header {padding: 10px; background-color: #e6e6e6; border-radius: 5px;}
-    .output-row {display: flex; gap: 20px;}
-    .output-row > * {flex: 1;}
-"""
-) as demo:
+with gr.Blocks() as demo:
     gr.Markdown("# Real-Time Scam Call Detection")
     gr.Markdown(
         "Upload an audio file to check if it's a scam call and get a detailed "
@@ -129,4 +122,14 @@ with gr.Blocks(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     # share=True exposes a public gradio tunnel; enable only for demos.
-    demo.launch(share=True, debug=True)
+    # (Gradio 6.0 moved the css parameter from Blocks() to launch().)
+    demo.launch(
+        css="""
+        .gradio-container {background-color: #f9f9f9; font-family: Arial, sans-serif; padding: 20px;}
+        .tab-header {padding: 10px; background-color: #e6e6e6; border-radius: 5px;}
+        .output-row {display: flex; gap: 20px;}
+        .output-row > * {flex: 1;}
+    """,
+        share=True,
+        debug=True,
+    )

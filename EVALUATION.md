@@ -11,7 +11,7 @@ projected.
 * **Model:** `distilbert-base-uncased`, fine-tuned with HF `Trainer`
   (`src/train.py`): 3 epochs, batch 16, LR 2e-5 (linear decay, no warmup),
   weight decay 0.01.
-* **Data:** `src/dataset.csv` — 1,998 labelled utterances (before feedback
+* **Data:** `src/dataset.csv` — 1,245 labelled records (before feedback
   augmentation), split 90/10 train/eval with `seed=42` for reproducibility.
 * **Metric:** accuracy via the `evaluate` library, computed on the held-out
   eval split at each epoch (`compute_metrics`).
@@ -65,7 +65,7 @@ training integration test, not a gate exemption.
 
 ## 3. Known limitations
 
-1. **Dataset scale and provenance.** ~2k short synthetic-style utterances
+1. **Dataset scale and provenance.** 1,245 short synthetic-style records
    is small for production NLP; expect weak generalisation to real
    conversational audio, dialects, and code-switching.
 2. **English-only.** `TRANSCRIPTION_LANGUAGE` is configurable (default
