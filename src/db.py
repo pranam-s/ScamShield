@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
 import sqlite3
 
 import config
+
+logger = logging.getLogger(__name__)
 
 CALLER_HASH_PREFIX = "hmac-sha256:"
 
@@ -47,7 +50,13 @@ def connect(db_path: str | None = None) -> sqlite3.Connection:
 
 
 def init_db(db_path: str | None = None) -> None:
-    """Create the schema if it does not exist yet."""
+    """Create the schema if it does not exist yet.
+
+    Also enforces the at-rest privacy invariant (AUDIT #21): on an existing
+    database, ``caller_number`` values that predate the hashing scheme are
+    legacy plaintext and are scrubbed to NULL rather than trusted — the rows
+    (and their transcripts, which feed retraining) are kept.
+    """
     with sqlite3.connect(db_path or config.DATABASE_PATH) as db:
         cursor = db.cursor()
         cursor.execute(
@@ -79,6 +88,13 @@ def init_db(db_path: str | None = None) -> None:
             """
         )
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_call_id ON call_records (call_id)")
+        scrubbed = cursor.execute(
+            "UPDATE call_records SET caller_number = NULL "
+            "WHERE caller_number IS NOT NULL AND caller_number NOT LIKE ?",
+            (f"{CALLER_HASH_PREFIX}%",),
+        ).rowcount
+        if scrubbed:
+            logger.info("Scrubbed %d legacy plaintext caller number(s) to NULL", scrubbed)
         db.commit()
 
 

@@ -156,6 +156,25 @@ def test_load_feedback_db_error_returns_none(tmp_path: Any) -> None:
     assert db.load_feedback_data(str(bad)) is None
 
 
+def test_init_db_scrubs_legacy_plaintext_caller_numbers(
+    monkeypatch: pytest.MonkeyPatch, tmp_db: Any
+) -> None:
+    monkeypatch.setenv(config.CALLER_KEY_ENV_VAR, "secret-1")
+    hashed = db.hash_caller_number("+91-000")
+    with sqlite3.connect(tmp_db) as conn:
+        conn.execute(
+            "INSERT INTO call_records (call_id, caller_number) VALUES ('legacy', '+91-1234567890')"
+        )
+        conn.execute(
+            "INSERT INTO call_records (call_id, caller_number) VALUES ('hashed', ?)", (hashed,)
+        )
+    db.init_db()  # second init over existing rows
+    with sqlite3.connect(tmp_db) as conn:
+        rows = dict(conn.execute("SELECT call_id, caller_number FROM call_records").fetchall())
+    assert rows["legacy"] is None  # plaintext dropped, not trusted
+    assert rows["hashed"] == hashed  # hash-format value untouched
+
+
 def test_connect_uses_config_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
     redirected = tmp_path / "redirected.db"
     monkeypatch.setattr(config, "DATABASE_PATH", redirected)
