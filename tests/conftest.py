@@ -87,6 +87,7 @@ def client(
         "load_model",
         lambda: (fake_tokenizer, fake_model, "test-scam-model"),
     )
+    monkeypatch.setenv(config.CALLER_KEY_ENV_VAR, "test-caller-key")
     backend.active_calls.clear()
     with TestClient(backend.app) as test_client:
         yield test_client

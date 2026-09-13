@@ -70,6 +70,40 @@ def test_tokenize_dataset_removes_text_column() -> None:
     assert tokenized[0]["input_ids"] == [101, 102]
 
 
+# --- caller-number hashing (AUDIT #21) ---------------------------------------
+
+
+def test_hash_caller_number_is_deterministic(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(config.CALLER_KEY_ENV_VAR, "secret-1")
+    assert db.hash_caller_number("+91-000") == db.hash_caller_number("+91-000")
+
+
+def test_hash_caller_number_differs_per_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(config.CALLER_KEY_ENV_VAR, "secret-1")
+    first = db.hash_caller_number("+91-000")
+    monkeypatch.setenv(config.CALLER_KEY_ENV_VAR, "secret-2")
+    assert db.hash_caller_number("+91-000") != first
+
+
+def test_hash_caller_number_format_conceals_number(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(config.CALLER_KEY_ENV_VAR, "secret-1")
+    hashed = db.hash_caller_number("+91-000")
+    assert hashed.startswith(db.CALLER_HASH_PREFIX)
+    assert "+91-000" not in hashed
+
+
+def test_hash_caller_number_missing_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(config.CALLER_KEY_ENV_VAR, raising=False)
+    with pytest.raises(db.CallerKeyMissingError, match="SCAMSHIELD_CALLER_KEY"):
+        db.hash_caller_number("+91-000")
+
+
+def test_hash_caller_number_blank_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(config.CALLER_KEY_ENV_VAR, "   ")
+    with pytest.raises(db.CallerKeyMissingError, match="SCAMSHIELD_CALLER_KEY"):
+        db.hash_caller_number("+91-000")
+
+
 # --- db helpers --------------------------------------------------------------
 
 

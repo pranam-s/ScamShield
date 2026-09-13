@@ -198,6 +198,15 @@ def save_call(
     if call_id not in active_calls:
         raise HTTPException(status_code=404, detail="Call ID not found.")
 
+    try:
+        stored_caller = db.hash_caller_number(caller_number) if caller_number else None
+    except db.CallerKeyMissingError as exc:
+        logger.error("Caller-number storage not configured: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Caller-number storage is not configured; call was not saved.",
+        ) from exc
+
     with _active_calls_lock:
         call_data = active_calls.pop(call_id)
 
@@ -228,7 +237,7 @@ def save_call(
                 start_time,
                 end_time,
                 duration,
-                caller_number,
+                stored_caller,
                 call_data["context"],
                 user_feedback,
                 final_status,

@@ -32,6 +32,11 @@ ALLOWED_AUDIO_FORMATS = frozenset({"mp3", "wav", "3gp", "mpeg", "m4a", "ogg", "f
 # --- Call session handling ---
 ABANDONED_CALL_TIMEOUT_SECONDS = 30  # no chunk for this long -> call considered gone
 
+# --- Privacy: caller numbers are never stored in plaintext (AUDIT #21) ---
+# The HMAC key comes from the environment at call time; without it the app
+# refuses to persist caller numbers (no silent plaintext fallback).
+CALLER_KEY_ENV_VAR = "SCAMSHIELD_CALLER_KEY"
+
 # --- Transcription ---
 # Google Speech Recognition needs a BCP-47 code; "auto" (the old default) is
 # not accepted by the API and fails at request time.

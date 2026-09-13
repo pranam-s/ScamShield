@@ -12,6 +12,7 @@ from conftest import make_wav_bytes
 
 import backend
 import config
+import db
 from predict import PredictionError, TranscriptionError
 
 
@@ -202,7 +203,59 @@ def test_save_call_success(client: Any, patched_pipeline: None, tmp_db: Any) -> 
             "SELECT caller_number, user_feedback, final_status, model_version_used "
             "FROM call_records WHERE call_id = 'call-9'"
         ).fetchone()
-    assert row == ("+91-000", "correct", "Scam", "test-scam-model")
+    assert row is not None
+    caller_number, user_feedback, final_status, model_version_used = row
+    assert caller_number == db.hash_caller_number("+91-000")  # never plaintext (AUDIT #21)
+    assert (user_feedback, final_status, model_version_used) == (
+        "correct",
+        "Scam",
+        "test-scam-model",
+    )
+
+
+def test_save_call_stores_hash_not_plaintext_bytes(
+    client: Any, patched_pipeline: None, tmp_db: Any
+) -> None:
+    number = "+91-9876543210"
+    backend.update_context("call-hash", "text", backend.tokenizer)
+    resp = client.post("/save-call/", json={"call_id": "call-hash", "caller_number": number})
+    assert resp.status_code == 200
+
+    raw_db_bytes = tmp_db.read_bytes()
+    assert number.encode() not in raw_db_bytes  # plaintext absent from the DB file itself
+    with sqlite3.connect(tmp_db) as conn:
+        stored = conn.execute(
+            "SELECT caller_number FROM call_records WHERE call_id = 'call-hash'"
+        ).fetchone()[0]
+    assert stored.startswith(db.CALLER_HASH_PREFIX)
+    assert stored == db.hash_caller_number(number)  # deterministic: exact-match lookup still works
+
+
+def test_save_call_missing_key_returns_503_and_keeps_session(
+    client: Any, monkeypatch: pytest.MonkeyPatch, tmp_db: Any
+) -> None:
+    monkeypatch.delenv(config.CALLER_KEY_ENV_VAR, raising=False)
+    backend.update_context("call-nokey", "text", backend.tokenizer)
+    resp = client.post("/save-call/", json={"call_id": "call-nokey", "caller_number": "+91-000"})
+    assert resp.status_code == 503
+    assert "not configured" in resp.json()["detail"]
+    assert "call-nokey" in backend.active_calls  # session survives; caller can retry
+    with sqlite3.connect(tmp_db) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM call_records").fetchone()[0] == 0
+
+
+def test_save_call_without_caller_number_needs_no_key(
+    client: Any, monkeypatch: pytest.MonkeyPatch, tmp_db: Any
+) -> None:
+    monkeypatch.delenv(config.CALLER_KEY_ENV_VAR, raising=False)
+    backend.update_context("call-nonum", "text", backend.tokenizer)
+    resp = client.post("/save-call/", json={"call_id": "call-nonum"})
+    assert resp.status_code == 200
+    with sqlite3.connect(tmp_db) as conn:
+        stored = conn.execute(
+            "SELECT caller_number FROM call_records WHERE call_id = 'call-nonum'"
+        ).fetchone()[0]
+    assert stored is None
 
 
 def test_save_call_survives_scoring_failure(

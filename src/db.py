@@ -2,9 +2,37 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import os
 import sqlite3
 
 import config
+
+CALLER_HASH_PREFIX = "hmac-sha256:"
+
+
+class CallerKeyMissingError(RuntimeError):
+    """Raised when the caller-number hashing key is not configured."""
+
+
+def hash_caller_number(caller_number: str) -> str:
+    """Return the keyed-hash (HMAC-SHA256) form of a caller number.
+
+    Caller numbers are PII (AUDIT #21) and are never stored in plaintext.
+    The HMAC key is read from the environment at call time; a missing or
+    blank key is an error, never a silent fallback to plaintext. Because the
+    hash is deterministic under one key, exact-match lookups on the number
+    remain possible without making the number recoverable.
+    """
+    secret = os.environ.get(config.CALLER_KEY_ENV_VAR, "").strip()
+    if not secret:
+        raise CallerKeyMissingError(
+            f"Environment variable {config.CALLER_KEY_ENV_VAR} must hold a "
+            "non-empty secret before caller numbers can be stored."
+        )
+    digest = hmac.new(secret.encode("utf-8"), caller_number.encode("utf-8"), hashlib.sha256)
+    return f"{CALLER_HASH_PREFIX}{digest.hexdigest()}"
 
 
 def connect(db_path: str | None = None) -> sqlite3.Connection:
