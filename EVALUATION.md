@@ -1,8 +1,8 @@
 # EVALUATION — Model, System, and Test Quality
 
-**Last updated:** 2026-09-09. This document reports only numbers that were
-actually produced on this repository. Nothing here is estimated or
-projected.
+**Last updated:** 2026-09-14 (AUDIT #21 remediation). This document reports
+only numbers that were actually produced on this repository. Nothing here is
+estimated or projected.
 
 ## 1. Model evaluation protocol
 
@@ -38,18 +38,19 @@ meaningful and must not be demoed.
 ## 2. System-level evaluation (verified in this pass)
 
 These numbers come from the actual test run of this repository
-(Python 3.13.15, torch 2.14.0+cpu, transformers 5.16.1, 2026-09-09):
+(Python 3.13.15, torch 2.14.0+cpu, transformers 5.16.1, last verified
+2026-09-14):
 
 | Check | Result |
 |---|---|
-| Test suite | **61 passed**, offline (no model downloads, no network) |
+| Test suite | **74 passed**, offline (no model downloads, no network) |
 | Line coverage — `predict.py` | **100 %** (70/70 stmts) |
-| Line coverage — `backend.py` | **100 %** (157/157 stmts) |
+| Line coverage — `backend.py` | **100 %** (163/163 stmts) |
 | Line coverage — `dataset_setup.py` | **100 %** (27/27) |
-| Line coverage — `db.py` | **100 %** (31/31) |
-| Line coverage — `config.py` | **100 %** (18/18) |
+| Line coverage — `db.py` | **100 %** (57/57) |
+| Line coverage — `config.py` | **100 %** (20/20) |
 | Line coverage — `train.py` | 35 % — see exclusion note |
-| Total coverage | 87 % |
+| Total coverage | 89 % |
 | Coverage gate (core modules, ≥90 % required) | **passes at 100 %** |
 | ruff check / ruff format | clean |
 | mypy | clean (7 source files) |
@@ -77,9 +78,14 @@ training integration test, not a gate exemption.
    for demo; real-time budgets need profiling (explicitly not measured here).
 5. **Single-process state.** `active_calls` is in-memory; restarting the
    backend or running multiple workers loses or fragments call sessions.
-6. **Privacy.** Transcripts and caller numbers are stored in plaintext
-   SQLite when a call is saved. No retention policy is implemented. This is
-   acceptable for a demo, not for production.
+6. **Privacy.** Saved-call transcripts are still stored in plaintext SQLite
+   so the feedback-driven retraining loop can read them; encrypting them at
+   rest is future work. Caller numbers, however, are no longer plaintext
+   (AUDIT #21, fixed 2026-09-14): they are stored as keyed HMAC-SHA256
+   hashes (`SCAMSHIELD_CALLER_KEY` environment variable; missing key → HTTP
+   503, never a silent fallback), legacy plaintext values are scrubbed to
+   NULL by `init_db`, and call records are purged after
+   `config.CALL_RECORD_RETENTION_DAYS` (30 days) at backend startup.
 7. **No authentication.** All endpoints are open; do not expose the API to
    the public internet as-is.
 8. **Feedback-label conflicts.** When feedback contradicts the base dataset

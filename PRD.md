@@ -1,7 +1,7 @@
 # PRD — ScamShield: Real-Time Scam Call Detection
 
 **Owner:** Team TechnoTitans · **Status:** hackathon prototype, actively hardened
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-14
 
 ## 1. Problem
 
@@ -85,7 +85,9 @@ call**, in plain language, with an action they can take immediately.
 * **Safety-first failure mode:** if the model or STT is unavailable the API
   must say so (503/502), never guess.
 * **Privacy:** audio is transient; transcripts stored only via explicit
-  save; caller numbers are PII (see limitations in EVALUATION.md).
+  save; caller numbers are PII and are stored only as keyed hashes, never
+  plaintext, with a 30-day retention purge (residual limitation in
+  EVALUATION.md §3).
 * **Quality gates:** ruff + mypy clean, pytest offline-safe, ≥90 % line
   coverage on core modules, enforced in CI.
 
@@ -105,4 +107,4 @@ call**, in plain language, with an action they can take immediately.
 | False positives annoy users; false negatives cost money | Two-tier yellow/red thresholds; user feedback loop for tuning |
 | STT errors degrade classification | Transcription failure returns 422 rather than a wrong verdict |
 | Model drift as scam scripts change | Retrain path folds in feedback (`train_model(retrain=True)`) |
-| PII exposure from stored transcripts/numbers | Consent-gated saving; documented plaintext-SQLite limitation |
+| PII exposure from stored transcripts/numbers | Consent-gated saving; caller numbers keyed-hashed at rest + 30-day retention purge (AUDIT #21); transcripts remain plaintext until at-rest encryption is added |

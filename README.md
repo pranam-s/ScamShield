@@ -22,7 +22,9 @@ frequently targeted. See [PRD.md](PRD.md) for the full problem statement.
 * **Proactive, colour-coded alerts** — Green (Safe) / Yellow (Suspicious) /
   Red (Scam), with suggested actions so the user can hang up and stay safe.
 * **Privacy-first design** — audio chunks are processed per call and
-  transcription data is only stored with user consent.
+  transcription data is only stored with user consent; caller numbers are
+  never stored in plaintext (keyed-hash at rest) and saved call records are
+  purged after a 30-day retention window.
 * **Adaptive learning** — user feedback ("correct" / "incorrect") is stored
   and folded back into retraining (`src/train.py --retrain` path).
 * **Built-in education module** — teaches users the warning signs of scam
@@ -84,8 +86,15 @@ later: `uv run python -c "from train import train_model; train_model(retrain=Tru
 ### Run the backend API
 
 ```bash
+# Required before saving calls that include a caller number (PII is stored
+# only as a keyed hash — a missing key makes /save-call return 503):
+export SCAMSHIELD_CALLER_KEY="a-long-random-secret"   # Windows: setx SCAMSHIELD_CALLER_KEY "a-long-random-secret"
 uv run python src/backend.py          # http://0.0.0.0:8000
 ```
+
+Saved call records are purged automatically when they are older than
+`CALL_RECORD_RETENTION_DAYS` (30 days, `src/config.py`); the purge runs at
+every backend startup.
 
 Key endpoints:
 

@@ -27,7 +27,7 @@ documented deferrals with a recommended owner action.
 | 18 | Medium | `accuracy` metric re-downloaded on every `compute_metrics` call | Fixed | Cached via `lru_cache` |
 | 19 | Medium | Frontend hardcodes a dead ngrok tunnel URL (`frontend/app/recordscam.tsx:120`) → app cannot reach any locally-hosted backend | Open | Move base URL to env config (`EXPO_PUBLIC_API_URL`) — frontend is outside this pass |
 | 20 | Medium | No authentication on any endpoint (anyone can submit audio / read model info) | Open | Acceptable for hackathon demo; add API key before any public deployment |
-| 21 | Medium | `caller_number` (PII) stored in plaintext SQLite with no retention policy | Open | Documented in PRD/EVALUATION; encrypt or drop column before production |
+| 21 | Medium | `caller_number` (PII) stored in plaintext SQLite with no retention policy | Fixed (2026-09-14) | `caller_number` is now stored only as a keyed HMAC-SHA256 hash (`db.hash_caller_number`); the key comes from the `SCAMSHIELD_CALLER_KEY` environment variable and a missing/blank key is a hard HTTP 503 with the call session kept for retry — never a silent plaintext fallback. Keyed (not merely salted) hashing was chosen over encryption because no feature reads the number back, so reversibility serves nothing; the deterministic hash still allows exact-match lookups. Retention: `db.purge_expired_calls()` deletes records older than `config.CALL_RECORD_RETENTION_DAYS` (30) at every backend startup. Migration: `init_db` scrubs any pre-hash (legacy plaintext) value to NULL. Covered by tests (plaintext absent from raw DB bytes, 503 path, scrub, purge). |
 | 22 | Medium | `active_calls` is in-memory only: lost on restart, breaks with `--workers > 1` | Open | Documented; move to Redis for horizontal scaling |
 | 23 | Low | Fallback to the untrained base model silently produced meaningless probabilities | Improved | Loud warning logged directing to run `src/train.py`; recommend HTTP 503 instead |
 | 24 | Low | `demo.launch(share=True)` exposes a public Gradio tunnel by default | Documented | Comment added; set `False` unless demoing |
@@ -40,6 +40,10 @@ documented deferrals with a recommended owner action.
 
 ## Testing notes
 
+- 2026-09-14 remediation (#21): the suite grew from 61 to 74 tests; the
+  caller-number hashing, legacy-plaintext scrub and retention purge are all
+  covered, including a byte-level check that the plaintext number is absent
+  from the SQLite file itself. Core modules remain at 100 % line coverage.
 - Tests never touch the network: the Hugging Face loader is stubbed via
   `sys.modules` (transformers 5.x lazy modules defeat plain attribute
   monkeypatching — see `tests/test_backend_advanced.py`), and speech
