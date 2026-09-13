@@ -96,6 +96,7 @@ _active_calls_lock = threading.Lock()
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     global tokenizer, model, model_version, device
     db.init_db()
+    db.purge_expired_calls()  # retention policy (AUDIT #21)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer, model, model_version = load_model()
     yield

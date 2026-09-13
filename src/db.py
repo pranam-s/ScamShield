@@ -7,6 +7,7 @@ import hmac
 import logging
 import os
 import sqlite3
+from datetime import datetime, timedelta
 
 import config
 
@@ -96,6 +97,31 @@ def init_db(db_path: str | None = None) -> None:
         if scrubbed:
             logger.info("Scrubbed %d legacy plaintext caller number(s) to NULL", scrubbed)
         db.commit()
+
+
+def purge_expired_calls(db_path: str | None = None, *, now: datetime | None = None) -> int:
+    """Delete call records older than ``config.CALL_RECORD_RETENTION_DAYS``.
+
+    Retention policy (AUDIT #21): saved calls are kept only for the retention
+    window measured against their ``end_time``; rows with no ``end_time``
+    cannot be aged and are conservatively kept. Returns the number of rows
+    deleted. ``now`` is injectable for tests.
+    """
+    cutoff = (now or datetime.now()) - timedelta(days=config.CALL_RECORD_RETENTION_DAYS)
+    with connect(db_path) as db:
+        cursor = db.execute(
+            "DELETE FROM call_records WHERE end_time IS NOT NULL AND end_time < ?",
+            (cutoff.isoformat(sep=" "),),
+        )
+        deleted = cursor.rowcount
+        db.commit()
+    if deleted:
+        logger.info(
+            "Purged %d call record(s) older than %d day(s)",
+            deleted,
+            config.CALL_RECORD_RETENTION_DAYS,
+        )
+    return deleted
 
 
 def load_feedback_data(db_path: str | None = None) -> list[dict[str, object]] | None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
@@ -102,6 +103,52 @@ def test_hash_caller_number_blank_key_raises(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setenv(config.CALLER_KEY_ENV_VAR, "   ")
     with pytest.raises(db.CallerKeyMissingError, match="SCAMSHIELD_CALLER_KEY"):
         db.hash_caller_number("+91-000")
+
+
+# --- retention purge (AUDIT #21) ---------------------------------------------
+
+
+def _insert_call_with_end(db_path: Any, call_id: str, end_time: str | None) -> None:
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "INSERT INTO call_records (call_id, end_time) VALUES (?, ?)", (call_id, end_time)
+        )
+
+
+def test_purge_expired_calls_deletes_only_stale_rows(tmp_db: Any) -> None:
+    stale = (datetime.now() - timedelta(days=config.CALL_RECORD_RETENTION_DAYS + 1)).isoformat(
+        sep=" "
+    )
+    fresh = datetime.now().isoformat(sep=" ")
+    _insert_call_with_end(tmp_db, "stale", stale)
+    _insert_call_with_end(tmp_db, "fresh", fresh)
+    _insert_call_with_end(tmp_db, "no-end", None)  # cannot be aged -> kept
+
+    assert db.purge_expired_calls() == 1
+
+    with sqlite3.connect(tmp_db) as conn:
+        remaining = {row[0] for row in conn.execute("SELECT call_id FROM call_records")}
+    assert remaining == {"fresh", "no-end"}
+
+
+def test_purge_empty_database_deletes_nothing(tmp_db: Any) -> None:
+    assert db.purge_expired_calls() == 0
+
+
+def test_purge_honours_retention_constant(monkeypatch: pytest.MonkeyPatch, tmp_db: Any) -> None:
+    monkeypatch.setattr(config, "CALL_RECORD_RETENTION_DAYS", 7)
+    _insert_call_with_end(
+        tmp_db, "ten-days-old", (datetime.now() - timedelta(days=10)).isoformat(sep=" ")
+    )
+    assert db.purge_expired_calls() == 1
+
+
+def test_purge_cutoff_comes_from_injected_now(tmp_db: Any) -> None:
+    five_days_ago = datetime.now() - timedelta(days=5)
+    _insert_call_with_end(tmp_db, "recent", five_days_ago.isoformat(sep=" "))
+
+    assert db.purge_expired_calls(now=datetime.now()) == 0
+    assert db.purge_expired_calls(now=datetime.now() + timedelta(days=30)) == 1
 
 
 # --- db helpers --------------------------------------------------------------

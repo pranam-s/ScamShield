@@ -36,6 +36,9 @@ ABANDONED_CALL_TIMEOUT_SECONDS = 30  # no chunk for this long -> call considered
 # The HMAC key comes from the environment at call time; without it the app
 # refuses to persist caller numbers (no silent plaintext fallback).
 CALLER_KEY_ENV_VAR = "SCAMSHIELD_CALLER_KEY"
+# Call records are purged once they are older than this many days; the purge
+# runs at backend startup (and can be invoked via db.purge_expired_calls()).
+CALL_RECORD_RETENTION_DAYS = 30
 
 # --- Transcription ---
 # Google Speech Recognition needs a BCP-47 code; "auto" (the old default) is
