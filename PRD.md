@@ -91,7 +91,8 @@ call**, in plain language, with an action they can take immediately.
   plaintext, with a 30-day retention purge (residual limitation in
   EVALUATION.md §3).
 * **Quality gates:** ruff + mypy clean, pytest offline-safe, ≥90 % line
-  coverage on core modules, enforced in CI.
+  coverage on core modules, enforced by a coverage gate
+  (`coverage report --fail-under=90`) run locally and in CI when enabled.
 
 ## 7. Success criteria
 

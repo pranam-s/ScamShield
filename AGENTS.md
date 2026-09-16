@@ -36,7 +36,9 @@ PRD.md / EVALUATION.md / README.md
   ```
 * CI (GitHub Actions) runs the same on Python 3.12/3.13 and enforces
   ≥90 % line coverage on `predict`, `backend`, `dataset_setup`, `db`,
-  `config` via `coverage report --fail-under=90`.
+  `config` via `coverage report --fail-under=90`. Actions is currently
+  DISABLED on this repository by owner decision (no paid Actions); the
+  gates must therefore pass on local execution before every push.
 
 ## House rules
 

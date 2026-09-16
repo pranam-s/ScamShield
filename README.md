@@ -140,7 +140,9 @@ uv run pytest --cov=src            # tests + coverage
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of the above on Python 3.12/3.13
-and enforces ≥90 % line coverage on the core modules.
+and enforces ≥90 % line coverage on the core modules. GitHub Actions is
+disabled on this repository (owner decision, see the CI note at the end of
+this file), so the gates run locally.
 
 See [docs/AUDIT.md](docs/AUDIT.md) for the codebase audit,
 [EVALUATION.md](EVALUATION.md) for model evaluation and limitations,
@@ -163,3 +165,12 @@ for the honest state of the model and the known limitations.
 ## License
 
 See [LICENSE](LICENSE).
+
+## CI note (2026-09-16)
+
+GitHub Actions is DISABLED on this repository by owner decision (no paid
+Actions: the account is billing-blocked and the owner declined spend).
+Every quality gate was verified by local execution at the recorded HEAD.
+Zero-cost remote option if ever wanted: a self-hosted runner (re-enable
+via Settings -> Actions, or gh api -X PUT
+repos/pranam-s/scamshield/actions/permissions -F enabled=true).

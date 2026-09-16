@@ -13,6 +13,9 @@ commit history; the prototype was built 2025-02 and hardened 2026-09.
   AUDIT references updated.
 - README prose rewritten in plainer language; no claim changed.
 - Added this changelog.
+- GitHub Actions disabled on this repository by owner decision (no paid
+  Actions); the quality gates run locally, and a CI note in the README
+  records how to re-enable with a self-hosted runner.
 
 ## 2026-09-14
 
