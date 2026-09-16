@@ -56,3 +56,32 @@ documented deferrals with a recommended owner action.
   `dataset_setup`, `db`, `config` — currently at 100 %.
 - The test suite caught a real regression during this pass (missing
   `config.DATABASE_PATH`), validating the investment.
+
+## Dependabot alert triage — 2026-09-16
+
+The triage brief listed 161 open alerts; the live API at triage time showed
+**164** (5 critical / 95 high / 51 medium / 13 low) — all npm, all against
+`frontend/package-lock.json`. Method: every alert's `vulnerable_version_range`
+was semver-matched against every locked instance of that package in the
+refreshed lock (`node_modules/<pkg>` copies included), not just the hoisted
+entry.
+
+| Disposition | Alerts | Detail |
+|---|---|---|
+| Stale — expect auto-close | 130 | No locked instance falls inside the vulnerable range. Examples: all 30 axios alerts target < 1.18.0 while the lock has only axios 1.20.0; js-yaml is locked at 3.15.2 / 4.3.2 — exactly the patched versions; undici ×14, brace-expansion ×10, node-forge ×7, fast-uri ×7, minimatch ×6, ws ×4, picomatch ×4, form-data ×4 and the rest match the same pattern. Dependabot's scan predates the current lock; these should close on its next scan of the pushed manifest. |
+| Real — fix requires Expo SDK 57 / React Native 0.87 major upgrade | 32 | Four packages have vulnerable instances in the Expo 52 / RN 0.76 build-tooling tree: tar ×12 (6.2.1 via `@expo/cli` + cacache 18; fixed in the tar 7.5.x line), @xmldom/xmldom ×15 (0.7.13 via `@expo/plist`; fixed 0.8.13–0.8.15), postcss ×4 (8.4.49 via `@expo/metro-config`; fixed 8.5.x), uuid ×1 (8.3.2 via `@expo/rudder-sdk-node`; fixed 11.1.1). All are Expo CLI / build-time paths, not code shipped in the app bundle. `npm audit` routes every one through `expo@57` / `react-native@0.87` majors; forcing major-version overrides into Expo-internal tooling that no test exercises would trade real breakage risk for cosmetic alert counts, so this is recorded as **planned work** (Expo SDK upgrade), not attempted. |
+| Real — no fix available | 2 | image-size 1.2.1 (advisory range ≤ 2.0.2, no patched release identified). Enters via metro 0.81.5 under react-native 0.76.7; the React Native 0.87 upgrade resolves it by moving metro (and transitively image-size) — recorded under the same planned upgrade. |
+
+Safe-set applied in this pass (no `package.json` change, majors untouched):
+
+- `npm update`: refreshes the lock within declared semver ranges — expo
+  52.0.31 → 52.0.49 and ~2,700 transitive lines refreshed; axios stays
+  1.20.0, react-native stays 0.76.7.
+- `npm audit fix` (non-breaking only): expo-router 4.0.17 → 4.0.20,
+  @expo/plist → 0.2.2.
+- Measured result: `npm audit` findings 27 → 26, and all 26 route through
+  the planned SDK major.
+
+Gates at this commit: backend pytest 74/74 + ruff clean (backend untouched);
+frontend jest 1/1 (`components/__tests__/ThemedText-test.tsx` + snapshot)
+against the refreshed expo 52.0.49 tree.

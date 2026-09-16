@@ -5,6 +5,20 @@ commit history; the prototype was built 2025-02 and hardened 2026-09.
 
 ## Unreleased (2026-09-16)
 
+### Security
+
+- Dependabot triage (docs/AUDIT.md): 164 open alerts enumerated live (all
+  npm, `frontend/package-lock.json`). 130 are stale — no locked version is
+  inside the vulnerable range, Dependabot's scan predates the current lock;
+  they should auto-close on its next scan. The 34 real ones (tar ×12,
+  @xmldom/xmldom ×15, postcss ×4, uuid ×1, image-size ×2 no-fix) all sit in
+  Expo 52 / RN 0.76 build-tooling paths whose fix is the Expo SDK 57 /
+  React Native 0.87 upgrade — recorded as planned work. Safe set applied:
+  `npm update` (expo 52.0.49 tree, ~2.7k lock lines refreshed) and
+  non-breaking `npm audit fix` (expo-router 4.0.20, @expo/plist 0.2.2);
+  `npm audit` findings 27 → 26. Gates: backend pytest 74/74 + ruff clean,
+  frontend jest 1/1.
+
 ### Changed
 
 - Survey screenshots moved under `docs/` with clean names:
