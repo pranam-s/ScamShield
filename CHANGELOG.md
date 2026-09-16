@@ -14,10 +14,12 @@ commit history; the prototype was built 2025-02 and hardened 2026-09.
   @xmldom/xmldom ×15, postcss ×4, uuid ×1, image-size ×2 no-fix) all sit in
   Expo 52 / RN 0.76 build-tooling paths whose fix is the Expo SDK 57 /
   React Native 0.87 upgrade — recorded as planned work. Safe set applied:
-  `npm update` (expo 52.0.49 tree, ~2.7k lock lines refreshed) and
-  non-breaking `npm audit fix` (expo-router 4.0.20, @expo/plist 0.2.2);
-  `npm audit` findings 27 → 26. Gates: backend pytest 74/74 + ruff clean,
-  frontend jest 1/1.
+  `npm update` (expo 52.0.49 tree, ~2.7k lock lines refreshed; axios
+  1.7.9 → 1.20.0, uuid 11.0.5 → 11.1.1) and non-breaking `npm audit fix`
+  (expo-router 4.0.17 → 4.0.20, @expo/plist 0.2.1 → 0.2.2);
+  `npm audit` findings 60 → 26 (26 re-verified on a clean `npm ci`).
+  Gates: backend pytest 74/74 + ruff clean, frontend jest 1/1. Numbers
+  independently re-verified 2026-09-17 (docs/AUDIT.md).
 
 ### Changed
 
