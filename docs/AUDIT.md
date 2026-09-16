@@ -35,7 +35,7 @@ documented deferrals with a recommended owner action.
 | 26 | Low | pydub requires system ffmpeg for anything non-WAV (undocumented) | Documented | README prerequisites section |
 | 27 | Low | pydub 0.25.1 emits `SyntaxWarning` on Python 3.13 (upstream regex strings) | Open (upstream) | Cosmetic; no action |
 | 28 | Low | `requirements.txt` was fully unpinned | Superseded | Deleted; `pyproject.toml` + `uv.lock` provide reproducible, current pins |
-| 29 | Low | `form 1.jpg` filename contains a space | Wontfix | Referenced by README; cosmetic only |
+| 29 | Low | `form 1.jpg` filename contains a space | Fixed (2026-09-16) | Renamed to `docs/survey-charts.jpg` / `docs/survey-responses.jpg`; references updated in README and PRD |
 | 30 | High | No tests, no CI, no packaging | Fixed | 61 offline tests (100% line coverage on `predict`, `backend`, `dataset_setup`, `db`, `config`), GitHub Actions workflow (uv + ruff + mypy + pytest with ≥90 % core coverage gate), `pyproject.toml` + `uv.lock` |
 
 ## Testing notes

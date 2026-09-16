@@ -23,7 +23,9 @@ people least equipped to resist it:
   Users asked for in-the-moment guidance and a way to learn the warning
   signs.
 
-Our own pre-hackathon survey (`form 1.jpg`, `form2.jpg`) echoed this:
+Our own pre-hackathon survey (13 responses; see
+[docs/survey-charts.jpg](docs/survey-charts.jpg) and
+[docs/survey-responses.jpg](docs/survey-responses.jpg)) echoed this:
 respondents reported frequent scam attempts against family members and
 overwhelmingly requested real-time warnings plus built-in education.
 
