@@ -1,34 +1,36 @@
-# 🛡️ ScamShield: Real-Time Scam Call Detection
+# ScamShield: real-time scam call detection
 
-**Stop phone scams before they start.** ScamShield is an AI-powered mobile
-application that provides real-time protection against scam calls, designed
-especially for vulnerable users and speakers of Indian languages.
+ScamShield listens to a live phone call, checks the transcript for known
+scam tactics, and warns the user before they hand over money or an OTP. It
+is a hackathon prototype built for the people scammers target most: elderly
+family members and anyone new to smartphones.
 
 ## The Problem
 
-Phone scams are a pervasive and devastating problem, and traditional
-spam filters offer no defence against live, conversational fraud. Scammers
-are sophisticated social engineers: they manufacture urgency, impersonate
-banks and government agencies, and demand OTPs and remote access. Our user
-survey (see `form 1.jpg` / `form2.jpg`) showed overwhelming concern among
-family members of elderly and non-tech-savvy users — the people most
-frequently targeted. See [PRD.md](PRD.md) for the full problem statement.
+Spam filters act on the caller's number, so they do nothing against a scam
+that arrives from a fresh number. Scammers fill that gap with social
+engineering: manufactured urgency, fake bank and government identities, and
+demands for OTPs or remote access. Our pre-hackathon survey of 13
+respondents (charts in [docs/survey-charts.jpg](docs/survey-charts.jpg),
+comments in [docs/survey-responses.jpg](docs/survey-responses.jpg)) found
+frequent scam attempts against the family members of elderly and
+non-tech-savvy users. See [PRD.md](PRD.md) for the full problem statement.
 
 ## What ScamShield Does
 
-* **Instant scam detection** — a fine-tuned DistilBERT model analyses the
-  live conversation transcript for scam indicators (OTP requests, urgency
-  and pressure tactics, remote-access demands, suspicious offers).
-* **Proactive, colour-coded alerts** — Green (Safe) / Yellow (Suspicious) /
-  Red (Scam), with suggested actions so the user can hang up and stay safe.
-* **Privacy-first design** — audio chunks are processed per call and
-  transcription data is only stored with user consent; caller numbers are
-  never stored in plaintext (keyed-hash at rest) and saved call records are
-  purged after a 30-day retention window.
-* **Adaptive learning** — user feedback ("correct" / "incorrect") is stored
-  and folded back into retraining (`src/train.py --retrain` path).
-* **Built-in education module** — teaches users the warning signs of scam
-  calls (in the Gradio UI and the mobile app).
+* Scam detection: a fine-tuned DistilBERT model scores the live
+  conversation transcript for scam indicators (OTP requests, urgency and
+  pressure tactics, remote-access demands, suspicious offers).
+* Colour-coded verdicts: Green (Safe) / Yellow (Suspicious) / Red (Scam),
+  each with a suggested action such as hanging up.
+* Privacy: audio chunks are processed per call and transcription data is
+  only stored with user consent; caller numbers are never stored in
+  plaintext (keyed-hash at rest) and saved call records are purged after a
+  30-day retention window.
+* Feedback loop: user corrections ("correct" / "incorrect") are stored and
+  folded back into retraining (`src/train.py --retrain` path).
+* Education module: the warning signs of scam calls, in the Gradio UI and
+  the mobile app.
 
 ## Architecture
 
@@ -114,7 +116,7 @@ uv run python src/gradio_interface.py
 ```
 
 Upload an audio file, get the transcript, scam probability and colour-coded
-verdict. (`share=True` opens a public tunnel — edit the source if you don't
+verdict. (`share=True` opens a public tunnel; edit the source if you don't
 want that.)
 
 ### Run the Expo frontend
@@ -125,7 +127,7 @@ npm install
 npx expo start
 ```
 
-> **Note:** the frontend currently hardcodes an ngrok URL
+> Note: the frontend currently hardcodes an ngrok URL
 > (`frontend/app/recordscam.tsx`); point it at your backend host before use.
 
 ## Development
@@ -138,7 +140,7 @@ uv run pytest --cov=src            # tests + coverage
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of the above on Python 3.12/3.13
-and enforces **≥90 % line coverage on the core modules**.
+and enforces ≥90 % line coverage on the core modules.
 
 See [docs/AUDIT.md](docs/AUDIT.md) for the codebase audit,
 [EVALUATION.md](EVALUATION.md) for model evaluation and limitations,
@@ -147,18 +149,16 @@ See [docs/AUDIT.md](docs/AUDIT.md) for the codebase audit,
 
 ## Roadmap
 
-* **Full on-device AI** — local processing for maximum privacy.
-* **Adaptive-learning toggle** — user control over data contribution.
-* **More languages** — the STT language is already configurable; add
-  multilingual training data.
-* **Advanced alerting** — emergency contacts and in-app reporting.
-* **Frontend config** — replace the hardcoded backend URL with env config.
+* On-device inference so audio never leaves the phone.
+* A user toggle for contributing feedback data to retraining.
+* Multilingual training data (the STT language is already configurable).
+* Emergency contacts and in-app reporting.
+* Env-based frontend configuration instead of the hardcoded backend URL.
 
 ## Team TechnoTitans
 
-We are TechnoTitans, driven by a passion to use technology to build a safer
-world. ScamShield is our commitment to protecting vulnerable individuals
-from the growing threat of phone scams.
+ScamShield is our hackathon project. See [EVALUATION.md](EVALUATION.md)
+for the honest state of the model and the known limitations.
 
 ## License
 
