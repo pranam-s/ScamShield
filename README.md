@@ -193,11 +193,6 @@ coding conventions.
 * Multilingual training data (the STT language is already configurable).
 * Emergency contacts and in-app reporting.
 
-## Team TechnoTitans
-
-ScamShield is our hackathon project. See [EVALUATION.md](EVALUATION.md)
-for the honest state of the model and the known limitations.
-
 ## License
 
 See [LICENSE](LICENSE).

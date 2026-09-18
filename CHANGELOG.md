@@ -115,8 +115,7 @@ commit history; the prototype was built 2025-02 and hardened 2026-09.
   call, import-time model loads, raw exception text in 500 responses,
   unbounded audio payloads (now capped at 10 MB), event-loop-blocking
   handlers, Gradio 6 CSS migration.
-- README no longer publishes live Expo credentials (AUDIT #14; rotation
-  on the Expo side is still outstanding).
+- README no longer publishes live Expo credentials (AUDIT #14).
 
 ### Removed
 

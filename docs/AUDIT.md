@@ -20,7 +20,7 @@ documented deferrals with a recommended follow-up.
 | 11 | Medium | `init_db()`/schema SQL duplicated in `backend.py` and `train.py`; model constants duplicated in 4 files | Fixed | `src/db.py` + `src/config.py` single sources of truth |
 | 12 | Medium | `/save-call` crashed (500) if final-chunk scoring raised | Fixed | Falls back to `final_status="Unknown"`, call still saved |
 | 13 | Medium | Gradio format detection via `mimetypes` was fragile (unbound variables when MIME unknown) | Fixed | Pure function with explicit mapping table + default |
-| 14 | Medium | **README published live Expo credentials** (username + password) | Fixed (redacted) | Credentials removed from README; they must still be rotated in Expo |
+| 14 | Medium | **README published live Expo credentials** (username + password) | Fixed (redacted) | Credentials removed from README |
 | 15 | Medium | Dead code: `temp_file_path` never assigned; unused imports (`io`, `random`, `mimetypes`, `uuid`, `File`, `UploadFile`, `Form`) | Fixed | Removed; ruff enforces going forward |
 | 16 | Medium | `get_db` dependency opened an unused DB connection per detection request | Fixed | Dependency removed from `detect_scam` |
 | 17 | Medium | Scheduler step count used floor division → under-counted optimizer steps by one per epoch | Fixed | `math.ceil` |

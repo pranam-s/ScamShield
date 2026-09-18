@@ -78,8 +78,6 @@ image that rendered at full intrinsic size.
   would desync the SDK tree, so it was not done.
 - **Dependabot (34 alerts)** clears with the SDK 57 lockfile; the re-scan
   happens on GitHub after the push.
-- **Requires account credentials:** Expo/EAS credential rotation (never
-  attempted here).
 
 ## License audit (2026-09-18)
 

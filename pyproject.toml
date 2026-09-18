@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "ScamShield - real-time scam phone call detection: FastAPI backend, DistilBERT scam classifier, and Gradio demo UI."
 readme = "README.md"
 license = { file = "LICENSE" }
-authors = [{ name = "Team TechnoTitans" }]
 requires-python = ">=3.12"
 keywords = ["scam-detection", "nlp", "distilbert", "fastapi", "speech-recognition"]
 classifiers = [

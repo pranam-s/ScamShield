@@ -1,6 +1,6 @@
 # PRD: ScamShield real-time scam call detection
 
-**Owner:** Team TechnoTitans · **Status:** hackathon prototype, actively hardened
+**Status:** hackathon prototype, actively hardened
 **Last updated:** 2026-09-14
 
 ## 1. Problem
