@@ -17,9 +17,9 @@ Backend (Windows, Python 3.14.7, uv-managed venv):
 | `uv run ruff format --check src tests` | clean |
 | `uv run mypy src` | 0 diagnostics (7 files) |
 | `uv run deptry .` | no issues (after declaring pydantic+numpy; config documented) |
-| `uvx vulture src --min-confidence 80` | clean |
-| `uv run pytest -q` | **74 passed, 2 warnings** (both upstream-internal: starlette's anyio alias via its testclient, SpeechRecognition's aifc notice; the 12 sqlite3 datetime warnings and the httpx-deprecation warning were fixed this pass) |
-| Coverage gate (predict, backend, dataset_setup, db, config ≥ 90%) | 100% (train.py/gradio_interface.py excluded by recorded decision — they need real model download/training) |
+| `uv run vulture src --min-confidence 80` | clean |
+| `uv run pytest -q` | **74 passed, 2 warnings** (both upstream-internal: starlette's anyio alias via its testclient, SpeechRecognition's aifc notice; the 12 sqlite3 datetime warnings and the httpx-deprecation warning were fixed this pass, and coverage tracing exposed four genuinely unclosed sqlite connections — all now closed via `db.connection()` and a committing+closing test helper) |
+| Coverage gate (predict, backend, dataset_setup, db, config ≥ 90%) | **100% (347/347 statements)**; full `--cov=src` matrix TOTAL 89% (train.py/gradio_interface.py excluded by recorded decision — they need real model download/training) |
 
 Frontend (Expo SDK 57: expo 57.0.24, react-native 0.86.3, react 19.2.3,
 jest-expo 57.0.5):
