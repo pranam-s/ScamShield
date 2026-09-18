@@ -52,7 +52,23 @@ DistilBERT scam classifier (src/predict.py, trained by src/train.py)
 
 **Tech stack:** Python 3.12+, FastAPI, Transformers (DistilBERT),
 SpeechRecognition, pydub, Gradio, SQLite · uv for dependency management ·
-React Native / Expo frontend (`frontend/`).
+React Native 0.86 / Expo SDK 57 frontend (`frontend/`).
+
+## Screenshots
+
+Captured from a real run of this repository: the backend was started with
+`uv run uvicorn backend:app --app-dir src` and exercised with real audio
+over HTTP, and the frontend below is the SDK 57 web export
+(`npx expo export --platform web`) served and driven in a browser.
+
+| Home | Record a call | Calls |
+|---|---|---|
+| ![Home screen with ScamShield logo and Detect Scam Calls button](docs/screenshots/01-home.png) | ![Recording screen with Start button](docs/screenshots/02-recordscam.png) | ![Calls screen with dial pad and Flagged status](docs/screenshots/03-call.png) |
+| **Education** | **Tab: landing** | **Tab: settings** |
+| ![Education module about scam tactics](docs/screenshots/04-studyscam.png) | ![Landing tab](docs/screenshots/05-landing.png) | ![Settings tab with model toggles](docs/screenshots/07-setting.png) |
+
+In the web export the status bar shows the route name; on a device the
+navigation chrome comes from Expo Router's native tabs.
 
 ## Getting Started
 
@@ -119,16 +135,27 @@ Upload an audio file, get the transcript, scam probability and colour-coded
 verdict. (`share=True` opens a public tunnel; edit the source if you don't
 want that.)
 
-### Run the Expo frontend
+### Run the Expo frontend (SDK 57)
 
 ```bash
 cd frontend
 npm install
-npx expo start
+npx expo start            # press a for Android, i for iOS, w for web
 ```
 
-> Note: the frontend currently hardcodes an ngrok URL
-> (`frontend/app/recordscam.tsx`); point it at your backend host before use.
+The backend address the app records against lives in
+`frontend/constants/Api.ts` (default `http://localhost:8000`); change it
+there when the backend runs on another machine on your LAN.
+
+Frontend quality gates (all verified green on this revision):
+
+```bash
+cd frontend
+npx tsc --noEmit          # type check
+npx jest                  # tests (offline)
+npx knip --no-progress    # dead code / dependency audit
+npx expo-doctor           # SDK health check
+```
 
 ## Development
 
@@ -137,25 +164,34 @@ uv run ruff check src tests        # lint
 uv run ruff format src tests       # format
 uv run mypy src                    # type-check
 uv run pytest --cov=src            # tests + coverage
+uv run deptry .                    # dependency hygiene (config in pyproject)
+uvx vulture src --min-confidence 80   # dead code
 ```
 
-CI (`.github/workflows/ci.yml`) runs all of the above on Python 3.12/3.13
-and enforces ≥90 % line coverage on the core modules. GitHub Actions is
-disabled on this repository (owner decision, see the CI note at the end of
-this file), so the gates run locally.
+CI (`.github/workflows/ci.yml`) runs the Python gates on 3.12/3.13, the
+coverage floor (≥90 % on core modules), and a frontend job (tsc, jest,
+knip). GitHub Actions is disabled on this repository (owner decision, see
+the CI note at the end of this file), so the gates run locally — every
+command was executed and green at the current HEAD
+([docs/STATUS.md](docs/STATUS.md) has the numbers).
 
 See [docs/AUDIT.md](docs/AUDIT.md) for the codebase audit,
+[docs/design.md](docs/design.md) for the HLD/LLD,
+[docs/BUILD_LOG.md](docs/BUILD_LOG.md) for the engineering history,
+[docs/STATUS.md](docs/STATUS.md) for the current measured state,
 [EVALUATION.md](EVALUATION.md) for model evaluation and limitations,
-[PRD.md](PRD.md) for the product requirements, and
-[docs/style-guides/](docs/style-guides/) for the coding conventions.
+[docs/adr/](docs/adr/) for decision records, [PRD.md](PRD.md) for the
+product requirements, and [docs/style-guides/](docs/style-guides/) for the
+coding conventions.
 
 ## Roadmap
 
+* Train and ship the fine-tuned weights (the repo refuses to fake this:
+  `/model-info/` stays empty until a real run).
 * On-device inference so audio never leaves the phone.
 * A user toggle for contributing feedback data to retraining.
 * Multilingual training data (the STT language is already configurable).
 * Emergency contacts and in-app reporting.
-* Env-based frontend configuration instead of the hardcoded backend URL.
 
 ## Team TechnoTitans
 

@@ -17,8 +17,11 @@ src/
   gradio_interface.py  Demo UI. Model loads lazily on first detection.
   dataset.csv          1,245 labelled records (text,label).
 tests/                 Offline pytest suite (see tests/conftest.py for fakes).
-frontend/              Expo/React Native app (out of backend test scope).
-docs/                  AUDIT.md, style-guides/.
+frontend/              Expo SDK 57 / React Native 0.86 app (own toolchain:
+                       tsc, jest via jest-expo, knip, expo-doctor — see
+                       docs/style-guides/typescript-react-native.md).
+docs/                  AUDIT.md, design.md, BUILD_LOG.md, STATUS.md, ADRs,
+                       style-guides/, screenshots/.
 PRD.md / EVALUATION.md / README.md
 ```
 
@@ -65,8 +68,13 @@ PRD.md / EVALUATION.md / README.md
    colour coding is part of the product contract.
 9. `model/`, `hf_models/`, `*.db`, `results/`, `logs/` are runtime
    artifacts — gitignored, never commit them.
-10. Frontend (`frontend/`) is Expo/React Native — not covered by the Python
-    toolchain; don't "fix" it with Python tooling.
+10. Frontend (`frontend/`) is Expo SDK 57 / React Native — not covered by
+    the Python toolchain; don't "fix" it with Python tooling. Frontend
+    gates: `npx tsc --noEmit`, `npx jest`, `npx knip --no-progress`,
+    `npx expo-doctor` (all from `frontend/`; versions come from Expo's
+    bundled dependency table via `npx expo install`, never hand-pinned).
+    The backend address lives in `frontend/constants/Api.ts` — no
+    endpoint URLs in screens.
 
 ## Known sharp edges
 
@@ -74,4 +82,8 @@ PRD.md / EVALUATION.md / README.md
 * The base-model fallback in `backend.load_model()` produces *untrained*
   predictions — run `uv run python src/train.py` first; the warning log is
   deliberate.
-* `frontend/app/recordscam.tsx` hardcodes a dead ngrok URL (AUDIT #19).
+* Timestamps cross the sqlite3 boundary as strings via
+  `db.to_sqlite_timestamp` (the default datetime adapters are deprecated
+  since Python 3.12). Keep using it for new columns/queries; its
+  `YYYY-MM-DD HH:MM:SS` form sorts correctly as text, which the retention
+  purge depends on.

@@ -1,8 +1,9 @@
 # EVALUATION — Model, System, and Test Quality
 
-**Last updated:** 2026-09-14 (AUDIT #21 remediation). This document reports
-only numbers that were actually produced on this repository. Nothing here is
-estimated or projected.
+**Last updated:** 2026-09-18 (production-completion pass; see
+docs/STATUS.md for the current gate numbers and the real-run evidence).
+This document reports only numbers that were actually produced on this
+repository. Nothing here is estimated or projected.
 
 ## 1. Model evaluation protocol
 

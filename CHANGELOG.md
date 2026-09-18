@@ -3,6 +3,52 @@
 All notable changes to ScamShield, newest first. Dates come from the
 commit history; the prototype was built 2025-02 and hardened 2026-09.
 
+## 2026-09-18 (production-completion pass)
+
+### Added
+
+- **Expo SDK 52 → 57** (docs/adr/0001): expo 57.0.24, React Native 0.86.3,
+  React 19.2.3, jest-expo 57.0.5, aligned via `expo install --fix`;
+  `expo-asset` and `react-native-worklets` peers installed;
+  `expo-doctor` 21/21. Clears the dependency tree the 34 remaining
+  Dependabot alerts were gated on (re-scan happens post-push).
+- Recording migrated from expo-av to **expo-audio** (`useAudioRecorder`,
+  `AudioModule` permissions); chunk reading moved to expo-file-system's
+  `File.arrayBuffer()` + a Hermes `btoa` encoder (the legacy
+  `readAsStringAsync` now throws at runtime in the SDK 57 root export).
+- Frontend CI job (npm ci → tsc → jest → knip) alongside the Python
+  matrix; all commands executed locally and green. Actions stays
+  disabled on GitHub per the owner's zero-spend policy.
+- docs/design.md (HLD + LLD), docs/BUILD_LOG.md,
+  docs/style-guides/typescript-react-native.md, docs/STATUS.md, ADR-0001,
+  and real screenshots from the SDK 57 web export in docs/screenshots/.
+
+### Fixed
+
+- The 12 sqlite3 "default datetime adapter is deprecated" warnings:
+  timestamps now cross the boundary as `YYYY-MM-DD HH:MM:SS` strings via
+  `db.to_sqlite_timestamp`, shared with the retention purge. Suite went
+  from 15 warnings to 2 (both upstream-internal, documented in
+  docs/STATUS.md); the dev `httpx` dependency became `httpx2` per
+  starlette's testclient migration.
+- Accessibility: call status is conveyed by text as well as colour,
+  dial-pad keys expose `keyboardkey` role with labels, icon-only buttons
+  and settings switches carry labels, colour-only emoji bullets removed
+  from the education screen.
+- Call screen's action image rendered unstyled at full intrinsic size —
+  style applied and verified in a browser run.
+- Frontend dead code: 7 unused template components deleted; 9 unused
+  dependencies removed (@react-navigation/*, axios, expo-linear-gradient,
+  expo-status-bar, expo-symbols, expo-web-browser, expo-system-ui);
+  Knip configured (`frontend/knip.json`) and clean. Backend: deptry +
+  vulture adopted, and the directly-imported pydantic/numpy are now
+  declared instead of riding transitively.
+- `app.json` renamed from the template placeholder ("expo@latest" failed
+  SDK 57's slug schema) to ScamShield; `newArchEnabled` removed
+  (New Architecture is the only mode in SDK 57).
+- The frontend detection endpoint no longer points at a dead ngrok URL
+  (AUDIT #19): backend address lives in `frontend/constants/Api.ts`.
+
 ## Unreleased (2026-09-16)
 
 ### Security
