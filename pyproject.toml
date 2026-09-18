@@ -55,6 +55,8 @@ dev = [
     "mypy>=1.13",
     # required by fastapi.testclient
     "httpx2>=2.13.0",
+    "deptry>=0.25.1",
+    "vulture>=2.16",
 ]
 
 [tool.uv]

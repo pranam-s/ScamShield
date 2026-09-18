@@ -33,10 +33,7 @@ PRD.md / EVALUATION.md / README.md
   docs/AUDIT.md #5).
 * Quality gate (must pass before committing):
   ```bash
-  uv run ruff check src tests && uv run ruff format --check src tests
-  uv run mypy src
-  uv run pytest --cov=src
-  ```
+undefined```
 * CI (GitHub Actions) runs the same on Python 3.12/3.13 and enforces
   ≥90 % line coverage on `predict`, `backend`, `dataset_setup`, `db`,
   `config` via `coverage report --fail-under=90`. Actions is currently
