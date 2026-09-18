@@ -11,7 +11,7 @@ this document wins.
   reviewed reason for that exact site.
 - **jest via jest-expo** for component tests. Use
   `@testing-library/react-native` (not react-test-renderer, which React 19
-  has deprecated). Remember v14's `render` is async — `await render(...)`.
+  has deprecated). Remember v14's `render` is async: `await render(...)`.
 - **Knip** (`npx knip`) must run clean. `knip.json` lists the RN platform
   files (`.ios.tsx`, `.web.ts`) as entries; platform twins of a used file
   belong there, not in an ignore list.
@@ -51,7 +51,7 @@ this document wins.
 - Decorative emoji and images must not be the only carrier of meaning;
   emoji used as bullet decoration are removed, not labelled.
 - The app is keyboard/D-pad navigable because it uses real focusable
-  controls — never break that with a View + onPress.
+  controls; never break that with a View + onPress.
 
 ## Testing
 

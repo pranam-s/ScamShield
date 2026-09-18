@@ -3,7 +3,7 @@
 All notable changes to ScamShield, newest first. Dates come from the
 commit history; the prototype was built 2025-02 and hardened 2026-09.
 
-## 2026-09-18 (production-completion pass)
+## 2026-09-18 (SDK 57 upgrade and hardening)
 
 ### Added
 
@@ -17,8 +17,8 @@ commit history; the prototype was built 2025-02 and hardened 2026-09.
   `File.arrayBuffer()` + a Hermes `btoa` encoder (the legacy
   `readAsStringAsync` now throws at runtime in the SDK 57 root export).
 - Frontend CI job (npm ci → tsc → jest → knip) alongside the Python
-  matrix; all commands executed locally and green. Actions stays
-  disabled on GitHub per the owner's zero-spend policy.
+  matrix; all commands executed locally and green. Actions stay
+  disabled on GitHub (zero-spend policy).
 - docs/design.md (HLD + LLD), docs/BUILD_LOG.md,
   docs/style-guides/typescript-react-native.md, docs/STATUS.md, ADR-0001,
   and real screenshots from the SDK 57 web export in docs/screenshots/.
@@ -35,7 +35,7 @@ commit history; the prototype was built 2025-02 and hardened 2026-09.
   dial-pad keys expose `keyboardkey` role with labels, icon-only buttons
   and settings switches carry labels, colour-only emoji bullets removed
   from the education screen.
-- Call screen's action image rendered unstyled at full intrinsic size —
+- Call screen's action image rendered unstyled at full intrinsic size;
   style applied and verified in a browser run.
 - Frontend dead code: 7 unused template components deleted; 9 unused
   dependencies removed (@react-navigation/*, axios, expo-linear-gradient,
@@ -54,12 +54,12 @@ commit history; the prototype was built 2025-02 and hardened 2026-09.
 ### Security
 
 - Dependabot triage (docs/AUDIT.md): 164 open alerts enumerated live (all
-  npm, `frontend/package-lock.json`). 130 are stale — no locked version is
+  npm, `frontend/package-lock.json`). 130 are stale: no locked version is
   inside the vulnerable range, Dependabot's scan predates the current lock;
   they should auto-close on its next scan. The 34 real ones (tar ×12,
   @xmldom/xmldom ×15, postcss ×4, uuid ×1, image-size ×2 no-fix) all sit in
   Expo 52 / RN 0.76 build-tooling paths whose fix is the Expo SDK 57 /
-  React Native 0.87 upgrade — recorded as planned work. Safe set applied:
+  React Native 0.87 upgrade, recorded as planned work. Safe set applied:
   `npm update` (expo 52.0.49 tree, ~2.7k lock lines refreshed; axios
   1.7.9 → 1.20.0, uuid 11.0.5 → 11.1.1) and non-breaking `npm audit fix`
   (expo-router 4.0.17 → 4.0.20, @expo/plist 0.2.1 → 0.2.2);
@@ -75,7 +75,7 @@ commit history; the prototype was built 2025-02 and hardened 2026-09.
   AUDIT references updated.
 - README prose rewritten in plainer language; no claim changed.
 - Added this changelog.
-- GitHub Actions disabled on this repository by owner decision (no paid
+- GitHub Actions disabled on this repository (no paid
   Actions); the quality gates run locally, and a CI note in the README
   records how to re-enable with a self-hosted runner.
 
@@ -115,8 +115,8 @@ commit history; the prototype was built 2025-02 and hardened 2026-09.
   call, import-time model loads, raw exception text in 500 responses,
   unbounded audio payloads (now capped at 10 MB), event-loop-blocking
   handlers, Gradio 6 CSS migration.
-- README no longer publishes live Expo credentials (AUDIT #14; the owner
-  still needs to rotate them on the Expo side).
+- README no longer publishes live Expo credentials (AUDIT #14; rotation
+  on the Expo side is still outstanding).
 
 ### Removed
 

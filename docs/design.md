@@ -1,4 +1,4 @@
-# Design — ScamShield
+# Design: ScamShield
 
 High-level and low-level design. The product story lives in the README and
 PRD; the engineering history in BUILD_LOG.md; measured numbers in
@@ -9,13 +9,13 @@ EVALUATION.md and STATUS.md.
 ScamShield detects scam phone calls in near real time. Three deployable
 pieces share one backend:
 
-- **FastAPI backend** (`src/backend.py`) — receives base64 audio chunks,
+- **FastAPI backend** (`src/backend.py`): receives base64 audio chunks,
   transcribes them, scores them for scam indicators, and stores consented
   call records in SQLite.
-- **Expo/React Native app** (`frontend/`) — the user-facing surface:
+- **Expo/React Native app** (`frontend/`): the user-facing surface:
   records call chunks, shows colour-coded verdicts, call history, and an
   education module.
-- **Gradio demo UI** (`src/gradio_interface.py`) — a browser demo of the
+- **Gradio demo UI** (`src/gradio_interface.py`): a browser demo of the
   same detection pipeline for quick manual testing.
 
 ```mermaid
@@ -34,7 +34,7 @@ flowchart TB
 ### Design principles
 
 1. **Fail loud, degrade honest.** No trained weights? The backend logs a
-   warning and serves the base model — and `/model-info/` reports
+   warning and serves the base model, and `/model-info/` reports
    "No model metadata found" rather than inventing an accuracy number.
 2. **Privacy at the boundary.** Caller numbers are HMAC-hashed before
    storage; legacy plaintext values are scrubbed to NULL on init; saved
@@ -79,13 +79,13 @@ hardcoded ngrok tunnel was AUDIT #19 and died with the hackathon).
 
 SQLite (`call_records`, `model_metadata`):
 
-- **call_records** — `call_id` PK, `start_time`/`end_time` (stored as
+- **call_records**: `call_id` PK, `start_time`/`end_time` (stored as
   `YYYY-MM-DD HH:MM:SS` strings via `db.to_sqlite_timestamp`, so text
   ordering equals time ordering and sqlite3's deprecated default adapters
   are never used), `duration`, `caller_number` (HMAC-SHA256 with
   `hmac-sha256:` prefix, or NULL), `full_transcription`, `user_feedback`,
   `final_status`, `model_version_used`.
-- **model_metadata** — one row per training run: model name, training
+- **model_metadata**: one row per training run: model name, training
   date (server default), dataset version, accuracy, epochs, label count.
   Served verbatim by `/model-info/`.
 
@@ -138,5 +138,5 @@ TLS termination is a deployment concern, documented not solved.
 - **STT service unreachable:** 502-class error, generic message.
 - **Missing caller key:** `/save-call/` refuses with 503 instead of
   storing plaintext.
-- **Dead detection URL (frontend):** eliminated as a class — endpoints
+- **Dead detection URL (frontend):** eliminated as a class; endpoints
   come from `constants/Api.ts`, never inline strings.

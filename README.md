@@ -5,7 +5,7 @@ scam tactics, and warns the user before they hand over money or an OTP. It
 is a hackathon prototype built for the people scammers target most: elderly
 family members and anyone new to smartphones.
 
-## The Problem
+## The problem
 
 Spam filters act on the caller's number, so they do nothing against a scam
 that arrives from a fresh number. Scammers fill that gap with social
@@ -16,7 +16,7 @@ comments in [docs/survey-responses.jpg](docs/survey-responses.jpg)) found
 frequent scam attempts against the family members of elderly and
 non-tech-savvy users. See [PRD.md](PRD.md) for the full problem statement.
 
-## What ScamShield Does
+## What ScamShield does
 
 * Scam detection: a fine-tuned DistilBERT model scores the live
   conversation transcript for scam indicators (OTP requests, urgency and
@@ -70,15 +70,15 @@ over HTTP, and the frontend below is the SDK 57 web export
 In the web export the status bar shows the route name; on a device the
 navigation chrome comes from Expo Router's native tabs.
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
 * [uv](https://docs.astral.sh/uv/) (Python + dependency manager)
 * **ffmpeg** on your system PATH (pydub needs it to decode MP3/3GP/M4A/OGG
   audio; WAV works without it)
-* A Google Speech Recognition–reachable internet connection (transcription
-  is cloud-based)
+* An internet connection that can reach Google Speech Recognition
+  (transcription is cloud-based)
 
 ### Install
 
@@ -170,8 +170,8 @@ uvx vulture src --min-confidence 80   # dead code
 
 CI (`.github/workflows/ci.yml`) runs the Python gates on 3.12/3.13, the
 coverage floor (≥90 % on core modules), and a frontend job (tsc, jest,
-knip). GitHub Actions is disabled on this repository (owner decision, see
-the CI note at the end of this file), so the gates run locally — every
+knip). GitHub Actions is disabled on this repository (see the CI note at
+the end of this file), so the gates run locally; every
 command was executed and green at the current HEAD
 ([docs/STATUS.md](docs/STATUS.md) has the numbers).
 
@@ -204,9 +204,7 @@ See [LICENSE](LICENSE).
 
 ## CI note (2026-09-16)
 
-GitHub Actions is DISABLED on this repository by owner decision (no paid
-Actions: the account is billing-blocked and the owner declined spend).
+GitHub Actions is disabled on this repository to keep spend at zero.
 Every quality gate was verified by local execution at the recorded HEAD.
-Zero-cost remote option if ever wanted: a self-hosted runner (re-enable
-via Settings -> Actions, or gh api -X PUT
-repos/pranam-s/scamshield/actions/permissions -F enabled=true).
+If remote CI is ever wanted, a self-hosted runner covers it without paid
+minutes (re-enable Actions in the repository settings).

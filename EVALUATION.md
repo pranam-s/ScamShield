@@ -1,6 +1,6 @@
-# EVALUATION — Model, System, and Test Quality
+# Evaluation: model, system, and test quality
 
-**Last updated:** 2026-09-18 (production-completion pass; see
+**Last updated:** 2026-09-18 (see
 docs/STATUS.md for the current gate numbers and the real-run evidence).
 This document reports only numbers that were actually produced on this
 repository. Nothing here is estimated or projected.
@@ -12,31 +12,31 @@ repository. Nothing here is estimated or projected.
 * **Model:** `distilbert-base-uncased`, fine-tuned with HF `Trainer`
   (`src/train.py`): 3 epochs, batch 16, LR 2e-5 (linear decay, no warmup),
   weight decay 0.01.
-* **Data:** `src/dataset.csv` — 1,245 labelled records (before feedback
+* **Data:** `src/dataset.csv`: 1,245 labelled records (before feedback
   augmentation), split 90/10 train/eval with `seed=42` for reproducibility.
 * **Metric:** accuracy via the `evaluate` library, computed on the held-out
   eval split at each epoch (`compute_metrics`).
 * **Where results live:** after training, accuracy + dataset version +
   epoch count are written to the SQLite `model_metadata` table and served by
-  `GET /model-info/`. This is the single source of truth — the API serves
+  `GET /model-info/`. This is the single source of truth: the API serves
   whatever the last real training run produced.
 
 ### Current status (honest)
 
 **No trained weights are present in the repository** (`model/scam_detector/`
-is gitignored, by design — model binaries don't belong in git). Consequently
+is gitignored, by design; model binaries don't belong in git). Consequently
 **no accuracy number is claimed in any documentation**: run
 `uv run python src/train.py` to produce a model and metrics, then check
 `uv run python -c "import db; print(db.load_feedback_data())"` or
 `GET /model-info/` after a backend start. The `/model-info/` endpoint
-returns `"No model metadata found"` until a training run has completed —
+returns `"No model metadata found"` until a training run has completed,
 which is itself a useful integration check.
 
 Until a training run is done, the backend falls back to the *untrained*
 base model and logs a warning. Detection results from the fallback are not
 meaningful and must not be demoed.
 
-## 2. System-level evaluation (verified in this pass)
+## 2. System-level evaluation (verified locally, 2026-09-14)
 
 These numbers come from the actual test run of this repository
 (Python 3.13.15, torch 2.14.0+cpu, transformers 5.16.1, last verified
@@ -45,12 +45,12 @@ These numbers come from the actual test run of this repository
 | Check | Result |
 |---|---|
 | Test suite | **74 passed**, offline (no model downloads, no network) |
-| Line coverage — `predict.py` | **100 %** (70/70 stmts) |
-| Line coverage — `backend.py` | **100 %** (163/163 stmts) |
-| Line coverage — `dataset_setup.py` | **100 %** (27/27) |
-| Line coverage — `db.py` | **100 %** (57/57) |
-| Line coverage — `config.py` | **100 %** (20/20) |
-| Line coverage — `train.py` | 35 % — see exclusion note |
+| Line coverage, `predict.py` | **100 %** (70/70 stmts) |
+| Line coverage, `backend.py` | **100 %** (163/163 stmts) |
+| Line coverage, `dataset_setup.py` | **100 %** (27/27) |
+| Line coverage, `db.py` | **100 %** (57/57) |
+| Line coverage, `config.py` | **100 %** (20/20) |
+| Line coverage, `train.py` | 35 %; see exclusion note |
 | Total coverage | 89 % |
 | Coverage gate (core modules, ≥90 % required) | **passes at 100 %** |
 | ruff check / ruff format | clean |
@@ -58,8 +58,8 @@ These numbers come from the actual test run of this repository
 
 **train.py exclusion justification:** the uncovered functions
 (`train_model`, `get_tokenizer_and_model`) require downloading the base
-DistilBERT weights and executing a full 3-epoch training run — hundreds of
-CPU-minutes — which is out of scope for unit CI. The testable pure logic
+DistilBERT weights and executing a full 3-epoch training run (hundreds of
+CPU-minutes), which is out of scope for unit CI. The testable pure logic
 (`compute_metrics`, split fraction) *is* tested; the rest is exercised
 manually per the README training step. If this project moves past
 prototype stage, the right fix is a tiny (e.g. 2-sample) dummy-model

@@ -1,4 +1,4 @@
-# Python Style Guide — ScamShield
+# Python style guide: ScamShield
 
 Toolchain-enforced conventions for this repository. Anything marked
 "enforced" is checked by ruff/mypy in CI (`.github/workflows/ci.yml`).
@@ -25,7 +25,7 @@ Toolchain-enforced conventions for this repository. Anything marked
 * `snake_case` functions/variables/modules, `PascalCase` classes,
   `UPPER_SNAKE_CASE` module constants.
 * Booleans read as predicates: `is_loaded`, `has_feedback`.
-* Constants shared across modules belong in `src/config.py` — not
+* Constants shared across modules belong in `src/config.py`, not
   re-declared locally (historical bug source in this repo).
 
 ## Imports
@@ -51,7 +51,7 @@ Toolchain-enforced conventions for this repository. Anything marked
   `PredictionError`) instead of bare `Exception`.
 * Always `raise … from exc` when wrapping (bugbear B904-style hygiene).
 * Validate inputs early; map user errors to 4xx, dependency failures to
-  502/503, and never include internal exception text in HTTP responses —
+  502/503, and never include internal exception text in HTTP responses;
   log the detail, return a generic message.
 * No silent `except: pass`.
 
@@ -65,7 +65,7 @@ Toolchain-enforced conventions for this repository. Anything marked
 ## FastAPI conventions
 
 * Endpoints doing blocking work (inference, STT, DB) are `def`, not
-  `async def` — FastAPI runs them in the threadpool and the event loop
+  `async def`: FastAPI runs them in the threadpool and the event loop
   stays responsive.
 * Request/response shapes via pydantic models or typed `Body()` params.
 * Shared mutable state is guarded by a lock and owned by the module that
@@ -76,7 +76,7 @@ Toolchain-enforced conventions for this repository. Anything marked
 * Tests are **offline**: stub every network/ML boundary
   (`tests/conftest.py` fakes; `sys.modules` stub for transformers 5.x).
 * One behaviour per test; name tests `test_<unit>_<scenario>`.
-* Use `tmp_path` for filesystem, `monkeypatch` for config overrides —
+* Use `tmp_path` for filesystem, `monkeypatch` for config overrides;
   never write into the repo during tests.
 * Coverage gate: core modules (`predict`, `backend`, `dataset_setup`,
   `db`, `config`) ≥ 90 % lines. Exemptions require written justification
@@ -85,7 +85,7 @@ Toolchain-enforced conventions for this repository. Anything marked
 ## Git
 
 * Conventional commits: `feat:`, `fix:`, `test:`, `ci:`, `docs:`,
-  `chore:` — imperative mood, body explains *why*.
+  `chore:`; imperative mood, body explains *why*.
 * One logical change per commit; the repo must be green at every commit.
 * Never commit: `.venv`/venv dirs, model weights, `*.db`, caches
-  (all gitignored — this repo has been burned before, see docs/AUDIT.md).
+  (all gitignored; this repo has been burned before, see docs/AUDIT.md).

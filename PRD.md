@@ -1,4 +1,4 @@
-# PRD — ScamShield: Real-Time Scam Call Detection
+# PRD: ScamShield real-time scam call detection
 
 **Owner:** Team TechnoTitans · **Status:** hackathon prototype, actively hardened
 **Last updated:** 2026-09-14
@@ -12,7 +12,7 @@ people least equipped to resist it:
   smartphone owners, and non-English speakers are systematically targeted by
   caller-ID spoofing, bank/KYC impersonation and OTP-harvesting scripts.
   Existing defences (number blocking, carrier spam flags) only act on the
-  *identity* of the caller — they do nothing against a scammer calling from
+  *identity* of the caller, so they do nothing against a scammer calling from
   a fresh number, and nothing during the live conversation.
 * **The attack is conversational.** Modern scams are social-engineering
   scripts: manufactured urgency ("your account will be blocked in 30
@@ -73,14 +73,14 @@ call**, in plain language, with an action they can take immediately.
 
 1. Detect per audio chunk within a call session identified by `call_id`.
 2. Classification thresholds: ≥0.8 Scam (red), ≥0.4 Suspicious (yellow),
-   else Safe (green) — shared by backend, Gradio UI and app.
+   else Safe (green), shared by backend, Gradio UI and app.
 3. Conversation context must survive across chunks of the same call
    (truncated to the most recent ~512 tokens).
 4. Stale sessions (>30 s without a chunk) must be reclaimable.
 5. User feedback must be stored and usable for retraining without
    re-labelling the base dataset.
 6. Invalid input (bad base64, unknown/disallowed audio type, oversized
-   payloads) must fail fast with 4xx responses — never 500.
+   payloads) must fail fast with 4xx responses, never 500.
 
 ## 6. Non-functional requirements
 

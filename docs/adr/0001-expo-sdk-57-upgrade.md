@@ -39,7 +39,7 @@ lands in one pass and the risk concentrates in JavaScript API changes.
    `expo-random` are declared in package.json but imported nowhere (grep
    over app/, components/, hooks/, constants/). Call IDs are generated from
    `expo-crypto.getRandomBytesAsync`, which stays. `@types/react-native` is
-   also dropped — React Native ships its own types.
+   also dropped; React Native ships its own types.
 4. **Move the detection endpoint URL out of a hardcoded ngrok string**
    (AUDIT #19) into `constants/` as the single API base URL constant with a
    localhost default, so the frontend targets the bundled backend instead of
@@ -68,5 +68,4 @@ lands in one pass and the risk concentrates in JavaScript API changes.
   the expo-audio lifecycle; recordings land in the cache directory by
   default, which matches the existing transient-chunk design.
 - Dependabot alerts on the old scaffold tree are expected to clear once the
-  aligned SDK 57 lockfile lands (verified by re-scan after push; the
-  push itself remains owner-gated).
+  aligned SDK 57 lockfile lands, verified by re-scan after push.

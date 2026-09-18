@@ -11,8 +11,8 @@ but every change is held to the same bar as the code already here.
 - **No import-time side effects.** Models and the database load in the
   FastAPI lifespan, not at module import.
 - **No hacks.** No placeholders, no stubs treated as done, no suppressed
-  warnings or skipped tests. If a rule fires, fix the cause or argue why
-  the rule is wrong — in the open.
+  warnings or skipped tests. If a rule fires, fix the cause or argue, in
+  the open, why the rule is wrong.
 - **Timestamps** cross the sqlite3 boundary as strings via
   `db.to_sqlite_timestamp` (sqlite3's default adapters are deprecated).
 - **Caller numbers are never stored in plaintext** (keyed HMAC; missing
