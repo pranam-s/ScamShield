@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -12,6 +14,18 @@ from datasets import Dataset
 import config
 import db
 from dataset_setup import load_and_prepare_dataset, tokenize_dataset
+
+
+@contextmanager
+def _db(db_path: str) -> Iterator[sqlite3.Connection]:
+    """Committing, closing connection — `with sqlite3.connect(...)` never closes."""
+    conn = sqlite3.connect(db_path)
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
+
 
 # --- load_and_prepare_dataset ------------------------------------------------
 
@@ -109,7 +123,7 @@ def test_hash_caller_number_blank_key_raises(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def _insert_call_with_end(db_path: Any, call_id: str, end_time: str | None) -> None:
-    with sqlite3.connect(db_path) as conn:
+    with _db(db_path) as conn:
         conn.execute(
             "INSERT INTO call_records (call_id, end_time) VALUES (?, ?)", (call_id, end_time)
         )
@@ -126,7 +140,7 @@ def test_purge_expired_calls_deletes_only_stale_rows(tmp_db: Any) -> None:
 
     assert db.purge_expired_calls() == 1
 
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         remaining = {row[0] for row in conn.execute("SELECT call_id FROM call_records")}
     assert remaining == {"fresh", "no-end"}
 
@@ -155,7 +169,7 @@ def test_purge_cutoff_comes_from_injected_now(tmp_db: Any) -> None:
 
 
 def _insert_call(db_path: Any, text: str, feedback: str | None, status: str) -> None:
-    with sqlite3.connect(db_path) as conn:
+    with _db(db_path) as conn:
         conn.execute(
             "INSERT INTO call_records (call_id, full_transcription, user_feedback, final_status) "
             "VALUES (?, ?, ?, ?)",
@@ -166,7 +180,7 @@ def _insert_call(db_path: Any, text: str, feedback: str | None, status: str) -> 
 def test_init_db_creates_tables(tmp_path: Any) -> None:
     db_path = tmp_path / "fresh.db"
     db.init_db(db_path)
-    with sqlite3.connect(db_path) as conn:
+    with _db(db_path) as conn:
         tables = {
             row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         }
@@ -208,7 +222,7 @@ def test_init_db_scrubs_legacy_plaintext_caller_numbers(
 ) -> None:
     monkeypatch.setenv(config.CALLER_KEY_ENV_VAR, "secret-1")
     hashed = db.hash_caller_number("+91-000")
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         conn.execute(
             "INSERT INTO call_records (call_id, caller_number) VALUES ('legacy', '+91-1234567890')"
         )
@@ -216,7 +230,7 @@ def test_init_db_scrubs_legacy_plaintext_caller_numbers(
             "INSERT INTO call_records (call_id, caller_number) VALUES ('hashed', ?)", (hashed,)
         )
     db.init_db()  # second init over existing rows
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         rows = dict(conn.execute("SELECT call_id, caller_number FROM call_records").fetchall())
     assert rows["legacy"] is None  # plaintext dropped, not trusted
     assert rows["hashed"] == hashed  # hash-format value untouched

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 import sys
 import types
+from collections.abc import Iterator
 from typing import Any, ClassVar
 
 import pytest
@@ -52,6 +54,17 @@ def _stub_transformers(monkeypatch: pytest.MonkeyPatch, model_cls: Any) -> None:
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
 
+@contextlib.contextmanager
+def _db(tmp_db: str) -> Iterator[sqlite3.Connection]:
+    """Committing, closing connection — `with sqlite3.connect(...)` never closes."""
+    conn = sqlite3.connect(tmp_db)
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
+
+
 def test_load_model_uses_fine_tuned_weights(monkeypatch: pytest.MonkeyPatch) -> None:
     _stub_transformers(monkeypatch, FakeHFModel)
     FakeHFModel.saved_from = []
@@ -83,14 +96,14 @@ def test_load_model_falls_back_to_base(monkeypatch: pytest.MonkeyPatch, tmp_path
 
 def test_save_call_duplicate_id_returns_500(client: Any, tmp_db: Any, fake_tokenizer: Any) -> None:
     backend.update_context("call-dup", "text", fake_tokenizer)
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         conn.execute("INSERT INTO call_records (call_id) VALUES ('call-dup')")
     resp = client.post("/save-call/", json={"call_id": "call-dup"})
     assert resp.status_code == 500
     assert "Database error" in resp.json()["detail"]
     # the failed session was popped and the transaction rolled back
     assert "call-dup" not in backend.active_calls
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         count = conn.execute(
             "SELECT COUNT(*) FROM call_records WHERE call_id = 'call-dup'"
         ).fetchone()[0]
@@ -98,7 +111,7 @@ def test_save_call_duplicate_id_returns_500(client: Any, tmp_db: Any, fake_token
 
 
 def test_model_info_db_error_returns_500(client: Any, tmp_db: Any) -> None:
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         conn.execute("DROP TABLE model_metadata")
     resp = client.get("/model-info/")
     assert resp.status_code == 500

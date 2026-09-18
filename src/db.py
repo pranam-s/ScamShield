@@ -7,6 +7,8 @@ import hmac
 import logging
 import os
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 import config
@@ -55,11 +57,29 @@ def connect(db_path: str | None = None) -> sqlite3.Connection:
     """Open a connection with row access by column name.
 
     Reads ``config.DATABASE_PATH`` at call time so tests can redirect the
-    database by monkeypatching the config value.
+    database by monkeypatching the config value. The caller owns the
+    connection and must close it — either explicitly (the backend lifespan
+    does) or by using :func:`connection` for short-lived work.
     """
     conn = sqlite3.connect(db_path or config.DATABASE_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+@contextmanager
+def connection(db_path: str | None = None) -> Iterator[sqlite3.Connection]:
+    """Open, commit-on-success, and close a short-lived connection.
+
+    ``with sqlite3.connect(...)`` only manages the transaction — it never
+    closes the connection, which leaks handles until GC (visible as
+    ResourceWarnings under coverage). All one-shot helpers go through this.
+    """
+    conn = connect(db_path)
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def init_db(db_path: str | None = None) -> None:
@@ -70,7 +90,7 @@ def init_db(db_path: str | None = None) -> None:
     legacy plaintext and are scrubbed to NULL rather than trusted — the rows
     (and their transcripts, which feed retraining) are kept.
     """
-    with sqlite3.connect(db_path or config.DATABASE_PATH) as db:
+    with connection(db_path) as db:
         cursor = db.cursor()
         cursor.execute(
             """
@@ -108,7 +128,6 @@ def init_db(db_path: str | None = None) -> None:
         ).rowcount
         if scrubbed:
             logger.info("Scrubbed %d legacy plaintext caller number(s) to NULL", scrubbed)
-        db.commit()
 
 
 def purge_expired_calls(db_path: str | None = None, *, now: datetime | None = None) -> int:
@@ -120,7 +139,7 @@ def purge_expired_calls(db_path: str | None = None, *, now: datetime | None = No
     deleted. ``now`` is injectable for tests.
     """
     cutoff = (now or datetime.now()) - timedelta(days=config.CALL_RECORD_RETENTION_DAYS)
-    with connect(db_path) as db:
+    with connection(db_path) as db:
         cursor = db.execute(
             "DELETE FROM call_records WHERE end_time IS NOT NULL AND end_time < ?",
             (to_sqlite_timestamp(cutoff),),
@@ -147,7 +166,7 @@ def load_feedback_data(db_path: str | None = None) -> list[dict[str, object]] | 
     Returns ``None`` when there is nothing usable or the database fails.
     """
     try:
-        with connect(db_path) as db:
+        with connection(db_path) as db:
             rows = db.execute(
                 """
                 SELECT full_transcription AS text, user_feedback, final_status

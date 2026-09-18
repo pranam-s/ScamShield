@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import sqlite3
 import time
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -37,6 +39,17 @@ def patched_pipeline(monkeypatch: pytest.MonkeyPatch):
 # --- infrastructure endpoints ------------------------------------------------
 
 
+@contextlib.contextmanager
+def _db(tmp_db: str) -> Iterator[sqlite3.Connection]:
+    """Committing, closing connection — `with sqlite3.connect(...)` never closes."""
+    conn = sqlite3.connect(tmp_db)
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
+
+
 def test_health(client: Any) -> None:
     resp = client.get("/health/")
     assert resp.status_code == 200
@@ -56,7 +69,7 @@ def test_model_info_empty(client: Any) -> None:
 
 
 def test_model_info_after_training_row(client: Any, tmp_db: Any) -> None:
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         conn.execute(
             "INSERT INTO model_metadata (model_name, dataset_version, training_epochs, number_labels, accuracy) "
             "VALUES ('distilbert-base-uncased', '1.0', 3, 2, 0.91)"
@@ -198,7 +211,7 @@ def test_save_call_success(client: Any, patched_pipeline: None, tmp_db: Any) -> 
     assert resp.json()["message"] == "Call data saved successfully."
     assert "call-9" not in backend.active_calls  # session removed
 
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         row = conn.execute(
             "SELECT caller_number, user_feedback, final_status, model_version_used "
             "FROM call_records WHERE call_id = 'call-9'"
@@ -223,7 +236,7 @@ def test_save_call_stores_hash_not_plaintext_bytes(
 
     raw_db_bytes = tmp_db.read_bytes()
     assert number.encode() not in raw_db_bytes  # plaintext absent from the DB file itself
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         stored = conn.execute(
             "SELECT caller_number FROM call_records WHERE call_id = 'call-hash'"
         ).fetchone()[0]
@@ -240,7 +253,7 @@ def test_save_call_missing_key_returns_503_and_keeps_session(
     assert resp.status_code == 503
     assert "not configured" in resp.json()["detail"]
     assert "call-nokey" in backend.active_calls  # session survives; caller can retry
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         assert conn.execute("SELECT COUNT(*) FROM call_records").fetchone()[0] == 0
 
 
@@ -251,7 +264,7 @@ def test_save_call_without_caller_number_needs_no_key(
     backend.update_context("call-nonum", "text", backend.tokenizer)
     resp = client.post("/save-call/", json={"call_id": "call-nonum"})
     assert resp.status_code == 200
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         stored = conn.execute(
             "SELECT caller_number FROM call_records WHERE call_id = 'call-nonum'"
         ).fetchone()[0]
@@ -269,7 +282,7 @@ def test_save_call_survives_scoring_failure(
     )
     resp = client.post("/save-call/", json={"call_id": "call-err"})
     assert resp.status_code == 200
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         final_status = conn.execute(
             "SELECT final_status FROM call_records WHERE call_id = 'call-err'"
         ).fetchone()[0]
@@ -286,7 +299,7 @@ def test_save_call_with_empty_session(client: Any, tmp_db: Any) -> None:
     }
     resp = client.post("/save-call/", json={"call_id": "empty-call"})
     assert resp.status_code == 200
-    with sqlite3.connect(tmp_db) as conn:
+    with _db(tmp_db) as conn:
         final_status = conn.execute(
             "SELECT final_status FROM call_records WHERE call_id = 'empty-call'"
         ).fetchone()[0]

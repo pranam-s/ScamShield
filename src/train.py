@@ -139,7 +139,7 @@ def train_model(
 
     eval_metrics = trainer.evaluate(eval_dataset=tokenized_eval_dataset)
     accuracy = eval_metrics.get("eval_accuracy")
-    with db.connect() as database:
+    with db.connection() as database:
         database.execute(
             """
             INSERT INTO model_metadata (model_name, dataset_version, training_epochs, number_labels, accuracy)
