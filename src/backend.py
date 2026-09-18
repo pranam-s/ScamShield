@@ -235,8 +235,8 @@ def save_call(
             """,
             (
                 call_id,
-                start_time,
-                end_time,
+                db.to_sqlite_timestamp(start_time),
+                db.to_sqlite_timestamp(end_time),
                 duration,
                 stored_caller,
                 call_data["context"],

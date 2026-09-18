@@ -37,7 +37,8 @@ dev = [
     "pytest-cov>=6.0",
     "ruff>=0.8",
     "mypy>=1.13",
-    "httpx>=0.27",  # required by fastapi.testclient
+    # required by fastapi.testclient
+    "httpx2>=2.13.0",
 ]
 
 [tool.uv]

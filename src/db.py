@@ -16,6 +16,18 @@ logger = logging.getLogger(__name__)
 CALLER_HASH_PREFIX = "hmac-sha256:"
 
 
+def to_sqlite_timestamp(value: datetime) -> str:
+    """Format a datetime for storage/comparison in SQLite DATETIME columns.
+
+    sqlite3's default adapters for date/datetime are deprecated since
+    Python 3.12, so datetimes cross the boundary as strings. The
+    ``isoformat(sep=" ")`` form ("YYYY-MM-DD HH:MM:SS") sorts correctly as
+    text, which is what the retention purge relies on. All writers must use
+    this one format.
+    """
+    return value.isoformat(sep=" ")
+
+
 class CallerKeyMissingError(RuntimeError):
     """Raised when the caller-number hashing key is not configured."""
 
@@ -111,7 +123,7 @@ def purge_expired_calls(db_path: str | None = None, *, now: datetime | None = No
     with connect(db_path) as db:
         cursor = db.execute(
             "DELETE FROM call_records WHERE end_time IS NOT NULL AND end_time < ?",
-            (cutoff.isoformat(sep=" "),),
+            (to_sqlite_timestamp(cutoff),),
         )
         deleted = cursor.rowcount
         db.commit()
