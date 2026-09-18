@@ -67,11 +67,13 @@ export default function Call() {
           accessibilityRole="button"
           accessibilityLabel="Start scam call detection"
         >
-          <Link href="/recordscam">
-          <Image
-                source={require('@/assets/images/callingmain.webp')} // Adjust the path as necessary
-                // style={styles.} // Add your desired styles
-/>
+          <Link href="/recordscam" asChild>
+            <TouchableOpacity accessibilityRole="button">
+              <Image
+                source={require('@/assets/images/callingmain.webp')}
+                style={styles.callIcon}
+              />
+            </TouchableOpacity>
           </Link>
         </TouchableOpacity>
         <TouchableOpacity
