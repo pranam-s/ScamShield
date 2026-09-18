@@ -21,6 +21,7 @@ export default function SettingsScreen() {
         <Switch
           value={useLocalModel}
           onValueChange={(value) => setUseLocalModel(value)}
+          accessibilityLabel="Use model on device"
         />
       </View>
 
@@ -35,6 +36,7 @@ export default function SettingsScreen() {
         <Switch
           value={useCloudModel}
           onValueChange={(value) => setUseCloudModel(value)}
+          accessibilityLabel="Use model on cloud"
         />
       </View>
 
@@ -49,6 +51,7 @@ export default function SettingsScreen() {
         <Switch
           value={adaptiveLearning}
           onValueChange={(value) => setAdaptiveLearning(value)}
+          accessibilityLabel="Adaptive learning"
         />
       </View>
 

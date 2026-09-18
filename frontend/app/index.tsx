@@ -23,7 +23,11 @@ export default function Index() {
 
       
       <View style={styles.bottomContainer}>
-        <TouchableOpacity style={styles.callButton}>
+        <TouchableOpacity
+          style={styles.callButton}
+          accessibilityRole="button"
+          accessibilityLabel="Detect scam calls"
+        >
           <Image
             source={{
               uri: 'https://cdn-icons-png.flaticon.com/512/724/724664.png', 

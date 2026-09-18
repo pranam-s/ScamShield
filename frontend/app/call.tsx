@@ -27,14 +27,23 @@ export default function Call() {
         data={callHistory}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.callItem}>
+          <View
+            style={styles.callItem}
+            accessible
+            accessibilityLabel={`Call from ${item.number}, flagged as suspected scam`}
+          >
             <Text style={styles.callNumber}>{item.number}</Text>
-            <View
-              style={[
-                styles.statusIndicator,
-                { backgroundColor: item.status === 'red' ? 'red' : 'green' },
-              ]}
-            />
+            <View style={styles.statusContainer}>
+              {/* Status is conveyed by text as well as color so it never
+                  relies on color alone. */}
+              <Text style={styles.statusText}>Flagged</Text>
+              <View
+                style={[
+                  styles.statusIndicator,
+                  { backgroundColor: item.status === 'red' ? 'red' : 'green' },
+                ]}
+              />
+            </View>
           </View>
         )}
       />
@@ -47,11 +56,17 @@ export default function Call() {
             key={digit}
             style={styles.key}
             onPress={() => handleKeyPress(digit)}
+            accessibilityRole="keyboardkey"
+            accessibilityLabel={`Dial ${digit}`}
           >
             <Text style={styles.keyText}>{digit}</Text>
           </TouchableOpacity>
         ))}
-        <TouchableOpacity style={styles.callButton}>
+        <TouchableOpacity
+          style={styles.callButton}
+          accessibilityRole="button"
+          accessibilityLabel="Start scam call detection"
+        >
           <Link href="/recordscam">
           <Image
                 source={require('@/assets/images/callingmain.webp')} // Adjust the path as necessary
@@ -59,7 +74,12 @@ export default function Call() {
 />
           </Link>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDelete}
+          accessibilityRole="button"
+          accessibilityLabel="Delete last digit"
+        >
           <Text style={styles.deleteText}>⌫</Text>
         </TouchableOpacity>
       </View>
@@ -100,6 +120,16 @@ const styles = StyleSheet.create({
   callNumber: {
     fontSize: 18,
     color: '#000',
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#b00020',
   },
   statusIndicator: {
     width: 15,

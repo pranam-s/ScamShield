@@ -33,11 +33,11 @@ export default function ScamStudyScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Common Tactics Used by Scammers</Text>
           <View style={styles.bulletContainer}>
-            <Text style={styles.bulletPoint}>🔴 Caller ID Spoofing</Text>
-            <Text style={styles.bulletPoint}>🔴 Creating a Sense of Urgency</Text>
-            <Text style={styles.bulletPoint}>🔴 Impersonating Trusted Entities</Text>
-            <Text style={styles.bulletPoint}>🔴 Reward or Prize Scams</Text>
-            <Text style={styles.bulletPoint}>🔴 Fake Investment Opportunities</Text>
+            <Text style={styles.bulletPoint}>• Caller ID Spoofing</Text>
+            <Text style={styles.bulletPoint}>• Creating a Sense of Urgency</Text>
+            <Text style={styles.bulletPoint}>• Impersonating Trusted Entities</Text>
+            <Text style={styles.bulletPoint}>• Reward or Prize Scams</Text>
+            <Text style={styles.bulletPoint}>• Fake Investment Opportunities</Text>
           </View>
           <Image
                     source={require('../assets/images/scamcallers.jpg')} // Correct path to your image
