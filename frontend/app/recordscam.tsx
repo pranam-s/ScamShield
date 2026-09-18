@@ -1,34 +1,54 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
-import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system';
 import * as ExpoCrypto from 'expo-crypto';
+import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
+
+import { DETECT_SCAM_ENDPOINT, CHUNK_INTERVAL_MS } from '../constants/Api';
+
+/**
+ * Encode an ArrayBuffer as base64 without native helpers: RN's Hermes engine
+ * provides `btoa` (since 0.74) but only accepts binary strings, so the bytes
+ * are folded into a string in 32 KB slices to stay well inside the engine's
+ * argument-count limits.
+ */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const sliceSize = 0x8000;
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += sliceSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + sliceSize));
+  }
+  return btoa(binary);
+}
 
 const RecordScam: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [callId, setCallId] = useState<string | null>(null);
-  const recording = useRef<Audio.Recording | null>(null);
-  const recordingInterval = useRef<NodeJS.Timeout | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recordingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    requestPermissions();
+    void requestPermissions();
     return () => {
       if (recordingInterval.current) {
         clearInterval(recordingInterval.current);
-      }
-      if (recording.current) {
-        recording.current.stopAndUnloadAsync().catch(() => {});
       }
     };
   }, []);
 
   const requestPermissions = async () => {
-    const { status } = await Audio.requestPermissionsAsync();
+    const { status } = await AudioModule.requestRecordingPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission Required', 'Please grant microphone permission to use this feature.');
-      console.error("Permission denied.");
+      console.error('Permission denied.');
     } else {
-      console.log("Microphone permission granted.");
+      console.log('Microphone permission granted.');
     }
   };
 
@@ -41,15 +61,18 @@ const RecordScam: React.FC = () => {
 
   const startRecording = async () => {
     try {
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        allowsRecording: true,
+      });
       const newCallId = await generateCallId();
       setCallId(newCallId);
       setIsRecording(true);
       await startNewRecording();
 
-      recordingInterval.current = setInterval(async () => {
-        await processCurrentChunk(newCallId);
-        await startNewRecording();
-      }, 10000);
+      recordingInterval.current = setInterval(() => {
+        void processCurrentChunk(newCallId).then(() => startNewRecording());
+      }, CHUNK_INTERVAL_MS);
     } catch (error) {
       console.error('Error starting recording:', error);
       Alert.alert('Error', `Failed to start recording: ${error}`);
@@ -58,39 +81,9 @@ const RecordScam: React.FC = () => {
   };
 
   const startNewRecording = async () => {
-    if (recording.current) {
-      await recording.current.stopAndUnloadAsync();
-      recording.current = null;
-    }
-
     try {
-      recording.current = new Audio.Recording();
-      await recording.current.prepareToRecordAsync({
-        android: {
-          extension: '.3gp',
-          outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_THREE_GPP,
-          audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_AAC,
-          sampleRate: 44100,
-          numberOfChannels: 2,
-          bitRate: 128000,
-        },
-        ios: {
-          extension: '.m4a',
-          audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
-          sampleRate: 44100,
-          numberOfChannels: 2,
-          bitRate: 128000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
-        },
-        web: {
-          mimeType: 'audio/m4a',
-          bitsPerSecond: 128000,
-        },
-      });
-
-      await recording.current.startAsync();
+      await recorder.prepareToRecordAsync();
+      recorder.record();
       console.log('Recording started successfully');
     } catch (error) {
       console.error('Error preparing or starting the recording:', error);
@@ -98,43 +91,36 @@ const RecordScam: React.FC = () => {
     }
   };
 
-  const processCurrentChunk = async (callId: string) => {
-    if (recording.current) {
-      try {
-        await recording.current.stopAndUnloadAsync();
-        const uri = recording.current.getURI();
-        if (uri) {
-          const audioBytes = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-          console.log(`Audio Chunk for Call ID ${callId}:`, audioBytes);
-          await sendAudioToUrl(callId, audioBytes); 
-        }
-      } catch (error) {
-        console.error('Error processing audio chunk:', error);
-      } finally {
-        recording.current = null;
+  const processCurrentChunk = async (chunkCallId: string) => {
+    try {
+      await recorder.stop();
+      const uri = recorder.uri;
+      if (uri) {
+        const chunkFile = new File(uri);
+        const audioBytes = arrayBufferToBase64(await chunkFile.arrayBuffer());
+        await sendAudioToUrl(chunkCallId, audioBytes);
       }
+    } catch (error) {
+      console.error('Error processing audio chunk:', error);
     }
   };
-  
-  const sendAudioToUrl = async (callId: string, base64Audio: string) => {
-    const url = 'https://precise-divine-lab.ngrok-free.app/detect-scam/';
-  
+
+  const sendAudioToUrl = async (chunkCallId: string, base64Audio: string) => {
     try {
-      const response = await fetch(url, {
+      const response = await fetch(DETECT_SCAM_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          call_id: callId, 
-          base64: base64Audio
+          call_id: chunkCallId,
+          base64: base64Audio,
         }),
       });
-  
+
       if (response.ok) {
         const responseData = await response.json();
-        console.log("Response received successfully:", responseData);
-        
+
         // Check if the status is "scam"
         if (responseData.status === 'Scam') {
           Alert.alert(
@@ -144,15 +130,14 @@ const RecordScam: React.FC = () => {
               {
                 text: 'Cut Call',
                 onPress: () => {
-                  console.log('Call cut by user');
-                  stopRecording(); // Optionally stop recording if the user chooses to cut the call
+                  void stopRecording(); // Optionally stop recording if the user chooses to cut the call
                 },
                 style: 'destructive',
               },
               {
                 text: 'Ignore',
                 onPress: () => {
-                  console.log('User ignored the suggestion');
+                  // User chose to stay on the call; recording continues.
                 },
               },
             ],
@@ -166,16 +151,17 @@ const RecordScam: React.FC = () => {
       console.error('Error sending audio data to URL:', error);
     }
   };
-  
+
   const stopRecording = async () => {
     setIsRecording(false);
     if (recordingInterval.current) {
       clearInterval(recordingInterval.current);
       recordingInterval.current = null;
     }
-    if (recording.current) {
-      await recording.current.stopAndUnloadAsync();
-      recording.current = null;
+    try {
+      await recorder.stop();
+    } catch {
+      // Stopping an already-stopped recorder throws on some platforms; safe to ignore.
     }
     setCallId(null);
   };
@@ -183,7 +169,7 @@ const RecordScam: React.FC = () => {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/images/recording.jpg')} // Ensure the image path is correct
+        source={require('../assets/images/recording.jpg')}
         style={styles.headerImage}
       />
       <Text style={styles.title}>
@@ -192,6 +178,9 @@ const RecordScam: React.FC = () => {
       <TouchableOpacity
         onPress={isRecording ? stopRecording : startRecording}
         style={[styles.button, { backgroundColor: isRecording ? 'red' : 'green' }]}
+        accessibilityRole="button"
+        accessibilityLabel={isRecording ? 'Stop recording' : 'Start recording'}
+        accessibilityState={{ busy: isRecording }}
       >
         <Text style={styles.buttonText}>{isRecording ? 'Stop' : 'Start'}</Text>
       </TouchableOpacity>

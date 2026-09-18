@@ -9,13 +9,14 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  // RN 0.85+ reports 'unspecified' when no theme is set; resolve to light.
+  const colorScheme = useColorScheme() === 'dark' ? 'dark' : 'light';
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,  // Active tab color
-        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].secondary,  // Inactive tab color
+        tabBarActiveTintColor: Colors[colorScheme].tint,  // Active tab color
+        tabBarInactiveTintColor: Colors[colorScheme].icon,  // Inactive tab color
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -41,7 +42,7 @@ export default function TabLayout() {
         name="history"  // Assuming history.tsx will be your screen for History
         options={{
           title: 'History',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="ios-time" color={color} />,  // Clock icon for History (ios-time)
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="time" color={color} />,  // Clock icon for History
         }}
       />
 

@@ -1,10 +1,11 @@
 import * as React from 'react';
-import renderer from 'react-test-renderer';
+import { render, screen } from '@testing-library/react-native';
 
 import { ThemedText } from '../ThemedText';
 
-it(`renders correctly`, () => {
-  const tree = renderer.create(<ThemedText>Snapshot test!</ThemedText>).toJSON();
+// RNTL v14 render is async under React 19's concurrent root.
+it(`renders correctly`, async () => {
+  await render(<ThemedText>Snapshot test!</ThemedText>);
 
-  expect(tree).toMatchSnapshot();
+  expect(screen.getByText('Snapshot test!')).toBeOnTheScreen();
 });
