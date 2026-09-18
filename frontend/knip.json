@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "app/**/*.{ts,tsx}",
+    "components/ui/TabBarBackground.ios.tsx",
+    "hooks/useColorScheme.web.ts"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "expo": false,
+  "ignoreDependencies": [
+    "expo-splash-screen"
+  ]
+}
