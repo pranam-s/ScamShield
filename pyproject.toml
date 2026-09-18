@@ -22,6 +22,10 @@ dependencies = [
     "torch>=2.6",
     "fastapi>=0.115",
     "uvicorn>=0.32",
+    # backend.py imports pydantic directly (request/response models).
+    "pydantic>=2.9",
+    # train.py uses numpy directly alongside the HF stack.
+    "numpy>=2.1",
     "SpeechRecognition>=3.10",
     "pydub>=0.25.1",
     # Python 3.13 removed the stdlib audioop module (PEP 594) which pydub relies on.
@@ -30,6 +34,18 @@ dependencies = [
     "evaluate>=0.4.3",
     "filetype>=1.2",
 ]
+
+[tool.deptry]
+# src/ is a flat layout imported without a package prefix.
+known_first_party = ["backend", "config", "db", "dataset_setup", "gradio_interface", "predict", "train"]
+
+[tool.deptry.package_module_name_map]
+SpeechRecognition = "speech_recognition"
+
+[tool.deptry.per_rule_ignores]
+# DEP002 (declared, never imported directly): pydub's PEP 594 shim for
+# Python 3.13+, imported by pydub itself.
+DEP002 = ["audioop-lts"]
 
 [dependency-groups]
 dev = [
