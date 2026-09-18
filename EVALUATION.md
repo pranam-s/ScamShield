@@ -38,6 +38,7 @@ meaningful and must not be demoed.
 
 ## 2. System-level evaluation (verified locally, 2026-09-14)
 
+> Historical table from the 2026-09-14 run. The current gate (2026-09-18, Python 3.14) measures 347/347 gated statements, 100%: see docs/STATUS.md.
 These numbers come from the actual test run of this repository
 (Python 3.13.15, torch 2.14.0+cpu, transformers 5.16.1, last verified
 2026-09-14):
